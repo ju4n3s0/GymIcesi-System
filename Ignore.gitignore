@@ -1,0 +1,37 @@
+# Entorno virtual
+venv/
+.env
+.env.*
+
+# Archivos de configuración locales
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Archivos de dependencias y cache
+*.log
+*.pot
+*.mo
+*.pid
+*.seed
+*.out
+*.bak
+*.swp
+
+# Configuración de IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de compilación o distribución
+build/
+dist/
+*.egg-info/
