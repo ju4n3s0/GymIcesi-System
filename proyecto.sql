@@ -1,0 +1,153 @@
+CREATE TABLE AREAS (
+    code              INTEGER NOT NULL,
+    name              VARCHAR(20) NOT NULL,
+    faculty_code      INTEGER NOT NULL,
+    coordinator_id    VARCHAR(15) NOT NULL
+);
+
+CREATE UNIQUE INDEX AREAS__IDX ON AREAS (coordinator_id);
+
+ALTER TABLE AREAS ADD CONSTRAINT AREAS_PK PRIMARY KEY (code);
+
+CREATE TABLE SUBJECTS (
+    code            VARCHAR(10) NOT NULL,
+    name            VARCHAR(30) NOT NULL,
+    program_code    INTEGER NOT NULL
+);
+
+ALTER TABLE SUBJECTS ADD CONSTRAINT SUBJECTS_PK PRIMARY KEY (code);
+
+CREATE TABLE CITIES (
+    code       INTEGER NOT NULL,
+    name       VARCHAR(20) NOT NULL,
+    dept_code  INTEGER NOT NULL
+);
+
+ALTER TABLE CITIES ADD CONSTRAINT CITIES_PK PRIMARY KEY (code);
+
+CREATE TABLE DEPARTMENTS (
+    code      INTEGER NOT NULL,
+    name      VARCHAR(20) NOT NULL,
+    country_code INTEGER NOT NULL
+);
+
+ALTER TABLE DEPARTMENTS ADD CONSTRAINT DEPARTMENTS_PK PRIMARY KEY (code);
+
+CREATE TABLE EMPLOYEES (
+    id                  VARCHAR(15) NOT NULL,
+    first_name          VARCHAR(30) NOT NULL,
+    last_name           VARCHAR(30) NOT NULL,
+    email               VARCHAR(30) NOT NULL,
+    contract_type       VARCHAR(30) NOT NULL,
+    employee_type       VARCHAR(30) NOT NULL,
+    faculty_code        INTEGER NOT NULL,
+    campus_code         INTEGER NOT NULL,
+    birth_place_code    INTEGER NOT NULL
+);
+
+ALTER TABLE EMPLOYEES ADD CONSTRAINT EMPLOYEES_PK PRIMARY KEY (id);
+
+CREATE TABLE FACULTIES (
+    code         INTEGER NOT NULL,
+    name         VARCHAR(40) NOT NULL,
+    location     VARCHAR(15) NOT NULL,
+    phone_number VARCHAR(15) NOT NULL,
+    dean_id      VARCHAR(15)
+);
+
+CREATE UNIQUE INDEX FACULTIES__IDX ON FACULTIES (dean_id);
+
+ALTER TABLE FACULTIES ADD CONSTRAINT FACULTIES_PK PRIMARY KEY (code);
+
+CREATE TABLE GROUPS (
+    NRC VARCHAR(10),
+	number          INTEGER NOT NULL,
+    semester        VARCHAR(6) NOT NULL,
+    subject_code    VARCHAR(10) NOT NULL,
+    professor_id    VARCHAR(15) NOT NULL
+);
+
+ALTER TABLE GROUPS ADD CONSTRAINT GROUPS_PK PRIMARY KEY (NRC);
+
+CREATE TABLE COUNTRIES (
+    code  INTEGER NOT NULL,
+    name  VARCHAR(20) NOT NULL
+);
+
+ALTER TABLE COUNTRIES ADD CONSTRAINT COUNTRIES_PK PRIMARY KEY (code);
+
+CREATE TABLE PROGRAMS (
+    code        INTEGER NOT NULL,
+    name        VARCHAR(40) NOT NULL,
+    area_code   INTEGER NOT NULL
+);
+
+ALTER TABLE PROGRAMS ADD CONSTRAINT PROGRAMS_PK PRIMARY KEY (code);
+
+CREATE TABLE CAMPUSES (
+    code       INTEGER NOT NULL,
+    name       VARCHAR(20),
+    city_code  INTEGER NOT NULL
+);
+
+ALTER TABLE CAMPUSES ADD CONSTRAINT CAMPUSES_PK PRIMARY KEY (code);
+
+CREATE TABLE CONTRACT_TYPES (
+    name VARCHAR(30) NOT NULL
+);
+
+ALTER TABLE CONTRACT_TYPES ADD CONSTRAINT CONTRACT_TYPES_PK PRIMARY KEY (name);
+
+CREATE TABLE EMPLOYEE_TYPES (
+    name VARCHAR(30) NOT NULL
+);
+
+ALTER TABLE EMPLOYEE_TYPES ADD CONSTRAINT EMPLOYEE_TYPES_PK PRIMARY KEY (name);
+
+CREATE TABLE STUDENTS (
+    id               VARCHAR(15) NOT NULL,
+    first_name       VARCHAR(30) NOT NULL,
+    last_name        VARCHAR(30) NOT NULL,
+    email            VARCHAR(50) NOT NULL,
+    birth_date       DATE NOT NULL,
+    birth_place_code INTEGER NOT NULL,
+    campus_code      INTEGER NOT NULL
+);
+ALTER TABLE STUDENTS ADD CONSTRAINT STUDENTS_PK PRIMARY KEY (id);
+
+CREATE TABLE ENROLLMENTS (
+    
+	student_id     VARCHAR(15) NOT NULL,
+	NRC VARCHAR(10),
+    enrollment_date DATE NOT NULL,
+    status         VARCHAR(15) NOT NULL  -- 'Active', 'Passed', 'Failed', 'Withdrawn'
+);
+
+
+
+CREATE TABLE USERS (
+    username        VARCHAR(30) NOT NULL,
+    password_hash   VARCHAR(100) NOT NULL,
+    role            VARCHAR(20) NOT NULL,  -- e.g., 'STUDENT', 'EMPLOYEE', 'ADMIN'
+    student_id      VARCHAR(15),
+    employee_id     VARCHAR(15),
+    is_active       BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE USERS ADD CONSTRAINT USERS_PK PRIMARY KEY (username);
+
+-- Relaciones opcionales: un usuario puede corresponder a un estudiante o a un empleado
+ALTER TABLE USERS ADD CONSTRAINT USERS_STUDENTS_FK 
+    FOREIGN KEY (student_id) REFERENCES STUDENTS (id);
+
+ALTER TABLE USERS ADD CONSTRAINT USERS_EMPLOYEES_FK 
+    FOREIGN KEY (employee_id) REFERENCES EMPLOYEES (id);
+
+-- Restricción lógica: un usuario no debe pertenecer a ambos tipos simultáneamente
+ALTER TABLE USERS ADD CONSTRAINT USERS_ONE_ROLE_CHK 
+    CHECK (
+        (student_id IS NOT NULL AND employee_id IS NULL)
+        OR (student_id IS NULL AND employee_id IS NOT NULL)
+    );
+
