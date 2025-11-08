@@ -95,7 +95,9 @@ class Faculty(models.Model):
     # Usamos string para referencia adelantada.
     dean = models.OneToOneField(
         "Employee", db_column="dean_id", to_field="id",
-        on_delete=models.SET_NULL, null=True, blank=True, unique=True
+        on_delete=models.SET_NULL, null=True, blank=True, unique=True,
+        related_name="faculty_as_dean",
+
     )
 
     class Meta:

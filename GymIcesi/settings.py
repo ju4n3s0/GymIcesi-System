@@ -28,6 +28,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+LOGIN_URL = "/admin/login/"
+
+
 
 # Application definition
 
@@ -38,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'GymIcesi', 
 ]
 
 MIDDLEWARE = [
@@ -85,7 +89,7 @@ DATABASES = {
     }
 }
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://myAtlasDBUser:<16890145>@gymicesicluster.w8h8o4l.mongodb.net/")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://myAtlasDBUser:16890145@gymicesicluster.w8h8o4l.mongodb.net/")
 MONGO_DBNAME = os.getenv("MONGO_DBNAME", "gymicesidb")
 MONGO_TIMEOUT_MS = 1200
 

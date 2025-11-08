@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mis rutinas de ejercicio</title>
+</head>
+<body>
+<h1>Mis rutinas de ejercicio</h1>
+
+<p>
+    Aquí se muestran las rutinas que has registrado en el sistema.
+    Cada rutina está compuesta por uno o varios ejercicios (cardio, fuerza o movilidad),
+    con su duración, dificultad y enlaces a videos demostrativos.
+</p>
+
+<p>
+    <a href="{% url 'routine_create' %}">Crear nueva rutina</a> |
+    <a href="{% url 'exercise_list' %}">Gestionar ejercicios</a>
+</p>
+
+<hr>
+
+{% if routines %}
+    {% for rut in routines %}
+        <section style="margin-bottom: 1.5rem;">
+            <h2>{{ rut.name }}</h2>
+            {% if rut.description %}
+                <p>{{ rut.description }}</p>
+            {% endif %}
+            <p>
+                <strong>Usuario:</strong> {{ rut.userId }}<br>
+                <strong>Creada el:</strong> {{ rut.createdAt }}
+            </p>
+
+            <h3>Ejercicios de la rutina</h3>
+            <ul>
+                {% for item in rut.items %}
+                    <li>
+                        <strong>{{ item.exerciseName }}</strong>
+                        ({{ item.type }}, {{ item.duration }} min,
+                        dificultad {{ item.difficulty }})
+                        {% if item.video_url %}
+                            – <a href="{{ item.video_url }}" target="_blank">Ver video</a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+        <hr>
+    {% endfor %}
+{% else %}
+    <p>Todavía no has registrado ninguna rutina de ejercicio.</p>
+{% endif %}
+
+</body>
+</html>
