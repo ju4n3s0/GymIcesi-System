@@ -14,9 +14,21 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
 from django.contrib import admin
 from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+from django.shortcuts import redirect
+
+from .views import login_user
 
 urlpatterns = [
+    path('', lambda request: redirect('login', permanent=False)),
+    path('login/', login_user, name='login'),
     path('admin/', admin.site.urls),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static('/css/', document_root=os.path.join(settings.BASE_DIR, 'GymIcesi/templates'))
+    urlpatterns += static('/html/', document_root=os.path.join(settings.BASE_DIR, 'GymIcesi/templates'))
