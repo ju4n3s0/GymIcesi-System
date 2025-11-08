@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Crear rutina de ejercicio</title>
+</head>
+<body>
+<h1>Crear rutina de ejercicio</h1>
+
+<p>
+    Una rutina es un conjunto de ejercicios que vas a realizar en una sesión.
+    Primero selecciona los <strong>ejercicios predefinidos</strong> que ya existen en el sistema.
+    Si necesitas un ejercicio nuevo, puedes crearlo en el
+    <a href="{% url 'exercise_list' %}">catálogo de ejercicios</a>.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Guardar rutina</button>
+</form>
+
+<p style="margin-top: 1rem;">
+    <a href="{% url 'routine_list' %}">Volver a mis rutinas</a> |
+    <a href="{% url 'exercise_list' %}">Ir al catálogo de ejercicios</a>
+</p>
+
+</body>
+</html>

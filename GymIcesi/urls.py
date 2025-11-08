@@ -23,10 +23,18 @@ from django.shortcuts import redirect
 
 from .views import login_user
 
+from GymIcesi import views
+
 urlpatterns = [
     path('', lambda request: redirect('login', permanent=False)),
     path('login/', login_user, name='login'),
     path('admin/', admin.site.urls),
+     # Ejercicios
+    path("workouts/exercises/", views.exercise_list, name="exercise_list"),
+
+    # Rutinas
+    path("workouts/routines/", views.routine_list, name="routine_list"),
+    path("workouts/routines/new/", views.routine_create, name="routine_create"),
 ]
 
 if settings.DEBUG:
