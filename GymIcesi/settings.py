@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -76,13 +77,17 @@ WSGI_APPLICATION = 'GymIcesi.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
+        'NAME': 'railway',
         'USER': 'postgres',
-        'PASSWORD': '16890145',
-        'HOST': 'db.erfzfwxcllapyuyjiwdx.supabase.co',
-        'PORT': '5432',
+        'PASSWORD': 'uinozukDmxeOqVTaDauIgWcobujiSYyW',
+        'HOST': 'yamanote.proxy.rlwy.net',
+        'PORT': '20415',
     }
 }
+
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://myAtlasDBUser:<16890145>@gymicesicluster.w8h8o4l.mongodb.net/")
+MONGO_DBNAME = os.getenv("MONGO_DBNAME", "gymicesidb")
+MONGO_TIMEOUT_MS = 1200
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

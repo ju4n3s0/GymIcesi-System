@@ -225,10 +225,6 @@ class Student(models.Model):
 
 
 class Enrollment(models.Model):
-    """
-    En SQL tu PK suele ser (student_id, NRC). Django no soporta PK compuesta,
-    así que agregamos un id y forzamos unicidad pareja.
-    """
     id = models.BigAutoField(primary_key=True)
     student = models.ForeignKey(Student, db_column="student_id", to_field="id", on_delete=models.CASCADE)
     group = models.ForeignKey(Group, db_column="NRC", to_field="nrc", on_delete=models.CASCADE)
