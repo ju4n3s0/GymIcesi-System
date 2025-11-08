@@ -7,6 +7,12 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
+from django.contrib import messages
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login
+
+
+
 from .forms import ExerciseForm, RoutineForm, TrainerAssignForm
 from .models import User, Employee
 from . import mongo_utils
@@ -157,17 +163,6 @@ def routine_create(request):
         "form": form,
     }
     return render(request, "workouts/routine_create.html", context)
-
-
-from django.contrib import messages
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login
-
-
-
-
-
-
 
 
 def login_user(request):
