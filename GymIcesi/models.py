@@ -95,7 +95,7 @@ class Faculty(models.Model):
     # Usamos string para referencia adelantada.
     dean = models.OneToOneField(
         "Employee", db_column="dean_id", to_field="id",
-        on_delete=models.SET_NULL, null=True, blank=True, unique=True
+        on_delete=models.SET_NULL, null=True, blank=True, unique=True, related_name="+",
     )
 
     class Meta:
@@ -143,7 +143,7 @@ class Area(models.Model):
     )
     # coordinator_id tiene índice único: lo modelamos como OneToOne
     coordinator = models.OneToOneField(
-        Employee, db_column="coordinator_id", to_field="id", on_delete=models.PROTECT, unique=True
+        Employee, db_column="coordinator_id", to_field="id", on_delete=models.PROTECT, unique=True, related_name="+",
     )
 
     class Meta:
