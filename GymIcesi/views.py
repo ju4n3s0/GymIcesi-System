@@ -15,6 +15,9 @@ from .models import User, Employee
 from GymIcesi.models import Student, Employee
 from .models import User as UniUser 
 from . import mongo_utils
+from .forms import ProgressLogForm
+import datetime as dt
+
 from django.core.paginator import Paginator
 from django.db.models import Q
     
@@ -376,6 +379,62 @@ def routine_users(request):
 
     users_qs = users_qs.order_by("username")          # ⬅️ ordena por campo real
 
+# ---------- REGISTRAR PROGRESO DEL USUARIO ----------
+
+
+
+@login_required
+def progress_list(request):
+    logs = mongo_utils.get_progress_logs_by_user(request.user.username)
+    records = []
+
+    for log in logs:
+        date = log.get("date")
+
+        for entry in log.get("entries", []):
+            exercise_name = entry.get("exerciseName", "Desconocido")
+
+            for set_data in entry.get("sets", []):
+                records.append({
+                    "date": date,
+                    "exercise_name": exercise_name,
+                    "reps": set_data.get("reps", "-"),
+                    "weight": set_data.get("weight", "-"),
+                })
+
+    return render(request, "progress/progress_list.html", {"records": records})
+
+
+
+@login_required
+def progress_create(request):
+    if request.method == "POST":
+        form = ProgressLogForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+
+            date = cd["date"]
+            if hasattr(date, "year") and not hasattr(date, "hour"):
+                import datetime
+                date = datetime.datetime.combine(date, datetime.datetime.min.time())
+
+            mongo_utils.insert_progress_log(
+                user_id=request.user.username,
+                exercise_id=cd["exercise"],  # ✅ pasamos el ObjectId como string
+                date=date,
+                reps=cd.get("reps"),
+                weight=cd.get("weight"),
+            )
+
+            messages.success(request, "Progreso registrado correctamente ✅")
+            return redirect("progress_list")
+
+        messages.error(request, "Por favor completa correctamente todos los campos ❌")
+
+    else:
+        form = ProgressLogForm()
+
+    return render(request, "progress/progress_form.html", {"form": form})
     paginator = Paginator(users_qs, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
 

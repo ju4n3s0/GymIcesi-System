@@ -1,7 +1,16 @@
 # mongo_utils.py
+from django import db
 from pymongo import MongoClient, ASCENDING
 from django.conf import settings
 import datetime as dt
+from bson import ObjectId
+from pymongo import MongoClient
+from bson import ObjectId
+import datetime
+
+
+
+
 
 _client = None
 
@@ -71,6 +80,64 @@ def inactivate_assignment_by_id(_id):
     col = ensure_indexes()
     now = dt.datetime.utcnow()
     col.update_one({"_id": ObjectId(_id)}, {"$set": {"status": "inactive", "until": now, "updatedAt": now}})
+
+# --- Progreso de usuario (nuevo) ---
+def ensure_progress_indexes():
+    col = get_db()["progress_logs"]
+    col.create_index([("userId", ASCENDING)], name="ix_user")
+    col.create_index([("date", ASCENDING)], name="ix_date")
+    return col
+
+
+def list_progress_logs(user_id: str, limit: int = 100):
+    """
+    Devuelve los registros de progreso de un usuario ordenados por fecha descendente.
+    """
+    col = ensure_progress_indexes()
+    return list(col.find({"userId": user_id}).sort("date", -1).limit(limit))
+
+
+def insert_progress_log(user_id, exercise_id, date, reps=None, weight=None):
+    db = get_db()
+    exercise_oid = ObjectId(exercise_id)
+
+    # ✅ obtener nombre real del ejercicio
+    exercise_name = db.exercises.find_one({"_id": exercise_oid}).get("name", "Desconocido")
+
+    doc = {
+        "userId": user_id,
+        "date": date,
+        "entries": [
+            {
+                "exerciseId": exercise_oid,  # ✅ guardamos como ObjectId real
+                "exerciseName": exercise_name,  # ✅ requerido por el schema
+                "sets": [
+                    {
+                        "reps": reps,
+                        "weight": weight
+                    }
+                ]
+            }
+        ]
+    }
+
+    return db.progress_logs.insert_one(doc)
+
+
+def get_exercise_name_by_id(exercise_id):
+    db = get_db()
+    exercise = db.exercises.find_one({"_id": ObjectId(exercise_id)})
+    return exercise.get("name", "Desconocido") if exercise else "Desconocido"
+
+
+
+def get_progress_logs_by_user(user_id):
+    db = get_db()
+    return list(
+        db.progress_logs.find({"userId": user_id}).sort("date", -1)
+    )
+
+
 
 from typing import Iterable, Dict, Any
 

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<section class="auth">
+  <br><br><br>
+  <div class="auth__card">
+    <div class="auth__main">
+      <h2 class="auth__title">Registrar Progreso</h2>
+
+      <form method="post" class="form">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form__row">
+          <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+          <div class="alert alert--error">{{ field.errors }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="actions">
+          <button type="submit" class="btn">Guardar</button>
+          <a href="{% url 'progress_list' %}" class="btn btn--ghost">Volver</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

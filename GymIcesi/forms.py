@@ -3,6 +3,12 @@ from django import forms
 
 from .models import User, Employee
 from django.contrib.auth import authenticate
+from GymIcesi.mongo_utils import get_db
+from .mongo_utils import get_db
+import datetime as dt
+import datetime as dt
+from bson.objectid import ObjectId
+
 
 EXERCISE_TYPE_CHOICES = [
     ("cardio", "Cardio"),
@@ -190,3 +196,68 @@ class TrainerAssignForm(forms.Form):
             raise forms.ValidationError("El entrenador seleccionado no tiene Employee asociado (employee_id es NULL).")
         return cleaned
 
+# --- Seguimiento de progreso ---
+
+EFFORT_CHOICES = [
+    ("bajo", "Bajo"),
+    ("medio", "Medio"),
+    ("alto", "Alto"),
+]
+
+EFFORT_CHOICES = [
+    ("bajo", "Bajo"),
+    ("medio", "Medio"),
+    ("alto", "Alto"),
+]
+
+class ProgressLogForm(forms.Form):
+    date = forms.DateField(
+        label="Fecha",
+        widget=forms.DateInput(attrs={"type": "date"})
+    )
+    exercise = forms.ChoiceField(label="Ejercicio")
+    reps = forms.IntegerField(label="Repeticiones", min_value=1)
+    weight = forms.FloatField(label="Peso (kg)", min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        db = get_db()
+        exercise_docs = db.exercises.find().sort("name", 1)
+        self.fields["exercise"].choices = [
+            (str(e["_id"]), e.get("name", "Sin nombre"))
+            for e in exercise_docs
+        ]
+
+    # ✅ Mueve estas funciones fuera del __init__ y agrégales @staticmethod
+    @staticmethod
+    def list_progress_logs(user_id: str, limit: int = 100):
+        db = get_db()
+        logs = list(
+            db.progress_logs.find({"userId": user_id})
+            .sort("date", -1)
+            .limit(limit)
+        )
+        return logs
+
+    @staticmethod
+    def insert_progress_log(user_id: str, exercise_id: str, date, reps: int, weight: float):
+        db = get_db()
+        now = dt.datetime.utcnow()
+
+        doc = {
+            "userId": user_id,
+            "date": date,
+            "entries": [
+                {
+                    "exerciseId": ObjectId(exercise_id),
+                    "sets": [
+                        {"reps": reps, "weight": weight}
+                    ]
+                }
+            ],
+            "createdAt": now,
+            "updatedAt": now,
+        }
+
+        res = db.progress_logs.insert_one(doc)
+        return str(res.inserted_id)

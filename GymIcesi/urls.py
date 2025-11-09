@@ -52,6 +52,11 @@ urlpatterns = [
 
 
     path("workouts/assign/", views.routine_assign, name="routine_assign"),
+    path("admin/assignments/", views.assignment_list, name="assignment_list"),
+
+    # 📌 Progreso
+    path("progress/", views.progress_list, name="progress_list"),
+    path("progress/new/", views.progress_create, name="progress_create"),
     
     path('assigment/', assignment_show, name="assignment_show"),
     path('assigment/quick-assign/', assignment_quick, name = "assignment_quick"),

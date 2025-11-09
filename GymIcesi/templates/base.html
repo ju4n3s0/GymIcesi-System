@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}GymIcesi{% endblock %}</title>
+
+  <!-- Estilos globales -->
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <link rel="stylesheet" href="{% static 'css/progress.css' %}">
+  <style>
+    /* Ajustes generales */
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(120deg, #0b0c10, #1f2833);
+      color: #fff;
+    }
+
+    header.site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0b0c10;
+      padding: 14px 28px;
+      border-bottom: 1px solid #45a29e33;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      color: #66fcf1;
+    }
+
+    .nav a {
+      color: #c5c6c7;
+      margin-left: 18px;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .nav a:hover {
+      color: #66fcf1;
+    }
+
+    main.content {
+      min-height: calc(100vh - 140px);
+      padding: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    footer.site-footer {
+      text-align: center;
+      padding: 20px;
+      border-top: 1px solid #45a29e33;
+      font-size: 0.9rem;
+      color: #c5c6c7;
+    }
+
+    /* Tarjeta principal tipo auth */
+    .auth__card {
+      background: #1f2833;
+      padding: 40px 60px;
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+      max-width: 800px;
+      width: 100%;
+      color: #fff;
+    }
+
+    .auth__title {
+      color: #66fcf1;
+      margin-bottom: 6px;
+    }
+
+    .btn {
+      background: #45a29e;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      color: #0b0c10;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background: #66fcf1;
+    }
+
+    .btn--ghost {
+      background: transparent;
+      border: 1px solid #45a29e;
+      color: #66fcf1;
+    }
+
+    .btn--ghost:hover {
+      background: #45a29e33;
+    }
+
+    .alert--error {
+      background: #f44336cc;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none">
+      <path d="M5 8v8M3 9v6M9 10v4M15 10v4M19 8v8M21 9v6M9 12h6" stroke="#66fcf1" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span class="brand__name">GymIcesi</span>
+  </div>
+
+  <nav class="nav">
+    <a href="{% url 'exercise_list' %}">🏋️ Ejercicios</a>
+    <a href="{% url 'progress_list' %}">📈 Progreso</a>
+    <a href="{% url 'accounts_logout' %}">🚪 Cerrar sesión</a>
+  </nav>
+</header>
+
+<main class="content">
+  {% block content %}
+  {% endblock %}
+</main>
+
+<footer class="site-footer">
+  <p>© {% now "Y" %} GymIcesi. Todos los derechos reservados.</p>
+</footer>
+
+<!-- Scripts globales -->
+<script src="{% static 'js/auth.js' %}"></script>
+</body>
+</html>
