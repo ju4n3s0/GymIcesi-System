@@ -2,125 +2,223 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Lista de asignación</title>
+  <title>Asignación de entrenador</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{ --brand:#62e3e6; --line:#111; --bg:#f7ffff; --muted:#667; --card:#fff; }
+    :root{
+      --bg:#0b1220;            /* fondo app */
+      --card:#0f1729;          /* panel */
+      --muted:#9aa4b2;         /* texto secundario */
+      --text:#e6edf3;          /* texto principal */
+      --line:#1e2a40;          /* bordes suaves */
+      --primary:#2e8cf5;       /* botón principal */
+      --primary-600:#2378d4;
+      --surface:#0b1426;
+      --pill:#101b31;
+      --ok:#3ddc97;
+      --warning:#ffce45;
+      --radius:16px;
+      --radius-sm:12px;
+      --shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.02);
+    }
     *{box-sizing:border-box}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:#111}
-    header{background:var(--brand);padding:18px 20px;text-align:center;font-weight:600}
-    .wrap{padding:20px}
-    .panel{background:var(--card);border:3px solid var(--line);border-radius:14px;padding:16px}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      color:var(--text); background:radial-gradient(1200px 600px at 15% -10%, #10213e 0%, transparent 60%), radial-gradient(800px 400px at 100% 0%, #13294f 0%, transparent 55%), var(--bg);
+    }
 
-    /* Fila estudiante */
-    .row{display:flex;align-items:center;justify-content:space-between;padding:14px 8px}
-    .row + .row{border-top:2px solid var(--line)}
-    .student-name{font-weight:700}
-    .muted{color:var(--muted);font-size:12px;margin-top:4px}
+    /* Layout tipo login */
+    .container{max-width:1100px; margin:60px auto; padding:0 20px}
+    .card{
+      display:grid; grid-template-columns: 1fr 1fr; gap:0; overflow:hidden;
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)) , var(--card);
+      border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow);
+      min-height:560px;
+    }
+    .left{
+      padding:40px; background:linear-gradient(180deg, rgba(46,140,245,.08), transparent 60%), radial-gradient(600px 300px at -10% 10%, rgba(46,140,245,.15), transparent 60%), var(--surface);
+      border-right:1px solid var(--line);
+      display:flex; flex-direction:column; justify-content:center; gap:18px;
+    }
+    .brand{display:flex; align-items:center; gap:12px}
+    .logo{width:42px;height:42px; border-radius:12px; background:#183156; display:grid; place-items:center; color:#a9c7ff; font-weight:800}
+    h1{margin:0; font-size:34px; line-height:1.1}
+    .lead{color:var(--muted); max-width:36ch}
 
-    /* Plegable tipo botón */
+    .right{padding:36px; display:flex; flex-direction:column; gap:18px}
+    .header-row{display:flex; align-items:center; justify-content:space-between; gap:12px}
+    .title{font-weight:700; font-size:22px}
+    .search{
+      flex:1; display:flex; align-items:center; gap:10px; background:var(--pill); border:1px solid var(--line);
+      padding:10px 12px; border-radius:12px;
+    }
+    .search input{
+      background:transparent; border:none; outline:none; color:var(--text); width:100%;
+    }
+
+    /* Lista de estudiantes */
+    .list{margin-top:2px; border:1px solid var(--line); border-radius:16px; overflow:visible}
+    .row{display:flex; align-items:center; justify-content:space-between; padding:16px 14px; background:rgba(255,255,255,.02)}
+    .row + .row{border-top:1px solid var(--line)}
+    .student{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .username{font-weight:700}
+    .subtle{color:var(--muted); font-size:12px}
+    .status-ok{color:var(--ok)}
+    .status-none{color:var(--muted)}
+
+    /* Plegable-botón */
     details{position:relative}
     summary{
-      list-style:none;cursor:pointer;border:2px solid var(--line);border-radius:14px;
-      padding:10px 16px;min-width:220px;text-align:center;font-weight:600;background:#fff;
+      list-style:none; cursor:pointer; background:var(--pill); color:var(--text);
+      border:1px solid var(--line); border-radius:999px; padding:10px 16px; min-width:220px; text-align:center; font-weight:700;
+      transition:background .2s, border-color .2s, transform .05s;
     }
+    summary:hover{background:#13223e}
+    summary:active{transform:translateY(1px)}
     summary::-webkit-details-marker{display:none}
-    details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
+    details[open] summary{border-bottom-left-radius:12px; border-bottom-right-radius:12px}
 
-    /* Dropdown del plegable */
     .dropdown{
-      position:absolute;right:0;top:100%;
-      background:#fff;border:2px solid var(--line);border-top:none;border-bottom-left-radius:14px;border-bottom-right-radius:14px;
-      width:min(560px,92vw);max-height:48vh;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.08);
-      padding:10px 12px;z-index:10;
+      position:absolute; right:0; top:calc(100% - 8px); z-index:10;
+      background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow);
+      width:min(560px, 90vw); max-height:48vh; overflow:auto; padding:12px;
     }
-    .trainer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-    .trainer-card{border:2px solid var(--line);border-radius:12px;padding:10px}
-    .trainer-card small{color:var(--muted)}
+    .trainer-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px,1fr)); gap:10px}
+    .trainer{
+      background:rgba(255,255,255,.02); border:1px solid var(--line); border-radius:12px; padding:12px;
+    }
+    .trainer small{color:var(--muted)}
     .assign-btn{
-      appearance:none;border:2px solid var(--line);background:#fff;border-radius:10px;
-      padding:6px 10px;cursor:pointer;font-weight:600;margin-top:8px;width:100%;
+      margin-top:10px; width:100%; background:var(--primary); color:white; border:none;
+      border-radius:10px; padding:10px 12px; font-weight:700; cursor:pointer;
+      box-shadow:0 6px 18px rgba(46,140,245,.35);
+    }
+    .assign-btn:hover{background:var(--primary-600)}
+    .messages{margin-bottom:14px}
+    .messages li{color:#cde3ff; font-size:14px}
+
+    @media (max-width: 920px){
+      .card{grid-template-columns:1fr}
+      .left{min-height:220px; border-right:none; border-bottom:1px solid var(--line)}
+    }
+    /* 1) Evitar que la tarjeta recorte el desplegable */
+    .card{ overflow: visible; }     /* antes: overflow:hidden */
+
+    /* 2) Hacer el dropdown más grande y alto */
+    .dropdown{
+      width: min(720px, 96vw);      /* antes: min(560px, 90vw) */
+      max-height: 70vh;             /* antes: 48vh */
+      top: calc(100% - 6px);        /* un pelín más arriba */
+      z-index: 50;                  /* por si hay stacking context */
     }
 
-    /* Responsivo */
-    @media (max-width:640px){
-      .row{flex-direction:column;align-items:stretch;gap:8px}
-      details{width:100%}
-      summary{width:100%}
-      .dropdown{position:static;border:2px solid var(--line);border-radius:12px;margin-top:6px;width:100%}
+    /* 3) Más columnas en la grilla de entrenadores */
+    .trainer-grid{
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); /* antes: 220px */
+      gap: 12px;
+    }
+
+    /* 4) Alinear mejor la fila cuando el dropdown es alto */
+    .row{ align-items: flex-start; }
+
+    /* 5) En móviles, que el dropdown sea tipo “sheet” ocupando casi toda la pantalla */
+    @media (max-width: 640px){
+      .dropdown{
+        position: fixed;
+        left: 16px; right: 16px;
+        top: 72px; bottom: 16px;
+        width: auto; max-height: none;
+        border-radius: 16px;
+      }
     }
   </style>
 </head>
 <body>
-  <header>Lista de asignación</header>
-
-  <div class="wrap">
-    {% if messages %}
-      <ul class="muted" style="padding-left:16px;">
-        {% for m in messages %}<li>{{ m }}</li>{% endfor %}
-      </ul>
-    {% endif %}
-
-    <div class="panel">
-      {% for s in students %}
-        <div class="row">
-          <!-- Columna izquierda: datos del estudiante -->
-          <div>
-            <div class="student-name">@{{ s.username }}</div>
-            {% if s.student %}
-              <div class="muted">
-                {{ s.student.first_name }} {{ s.student.last_name }} · id: {{ s.student_id }}
-              </div>
-            {% endif %}
-
-            {% if s.assigned_trainer %}
-              <div class="muted">
-                Asignado a <strong>{{ s.assigned_trainer.first_name }} {{ s.assigned_trainer.last_name }}</strong>
-                desde {{ s.active_assignment.since|date:"Y-m-d" }}
-              </div>
-            {% elif s.active_assignment %}
-              <div class="muted">
-                Asignado a empleado {{ s.active_assignment.trainerId }}
-                desde {{ s.active_assignment.since|date:"Y-m-d" }}
-              </div>
-            {% else %}
-              <div class="muted">Sin asignación activa.</div>
-            {% endif %}
-          </div>
-
-          <!-- Columna derecha: botón/plegable con lista de entrenadores -->
-          <details>
-            {% if s.assigned_trainer %}
-              <summary>{{ s.assigned_trainer.first_name }} {{ s.assigned_trainer.last_name }}</summary>
-            {% elif s.active_assignment %}
-              <summary>Empleado {{ s.active_assignment.trainerId }}</summary>
-            {% else %}
-              <summary>Entrenador</summary>
-            {% endif %}
-
-            <div class="dropdown">
-              <div class="trainer-grid">
-                {% for t in trainers %}
-                  <div class="trainer-card">
-                    <div><strong>{{ t.employee.first_name }} {{ t.employee.last_name }}</strong></div>
-                    <small>@{{ t.username }} · id empleado: {{ t.employee_id }}</small>
-                    <form method="post" action="{% url 'assignment_quick' %}">
-                      {% csrf_token %}
-                      <input type="hidden" name="student_username" value="{{ s.username }}">
-                      <input type="hidden" name="trainer_username" value="{{ t.username }}">
-                      <button class="assign-btn" type="submit">Asignar</button>
-                    </form>
-                  </div>
-                {% empty %}
-                  <div class="muted">No hay entrenadores disponibles.</div>
-                {% endfor %}
-              </div>
-            </div>
-          </details>
+  <div class="container">
+    <div class="card">
+      <!-- Left "branding" panel -->
+      <aside class="left">
+        <div class="brand">
+          <div class="logo">H</div>
+          <div style="font-weight:800; letter-spacing:.4px;">GymIcesi</div>
         </div>
-      {% empty %}
-        <p class="muted">No hay estudiantes.</p>
-      {% endfor %}
+        <h1>Entrena mejor, sin fricción</h1>
+        <p class="lead">Administra las asignaciones de entrenador por estudiante. Cambia al instante y conserva el historial en Mongo.</p>
+      </aside>
+
+      <!-- Right content -->
+      <main class="right">
+        <div class="header-row">
+          <div class="title">Asignación de entrenador</div>
+        </div>
+
+        {% if messages %}
+          <ul class="messages">
+            {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+
+        <section class="list">
+          {% for s in students %}
+            <div class="row">
+              <div class="student">
+                <div class="username">{{ s.username }}</div>
+                {% if s.student %}
+                  <div class="subtle">{{ s.student.first_name }} {{ s.student.last_name }} · id: {{ s.student_id }}</div>
+                {% endif %}
+
+                {% if s.assigned_trainer %}
+                  <div class="subtle status-ok">
+                    Asignado a <strong>{{ s.assigned_trainer.first_name }} {{ s.assigned_trainer.last_name }}</strong>
+                    desde {{ s.active_assignment.since|date:"Y-m-d" }}
+                  </div>
+                {% elif s.active_assignment %}
+                  <div class="subtle status-ok">
+                    Asignado a empleado {{ s.active_assignment.trainerId }}
+                    desde {{ s.active_assignment.since|date:"Y-m-d" }}
+                  </div>
+                {% else %}
+                  <div class="subtle status-none">Sin asignación activa.</div>
+                {% endif %}
+              </div>
+
+              <details>
+                {% if s.assigned_trainer %}
+                  <summary>{{ s.assigned_trainer.first_name }} {{ s.assigned_trainer.last_name }}</summary>
+                {% elif s.active_assignment %}
+                  <summary>Empleado {{ s.active_assignment.trainerId }}</summary>
+                {% else %}
+                  <summary>Entrenador</summary>
+                {% endif %}
+
+                <div class="dropdown">
+                  <div class="trainer-grid">
+                    {% for t in trainers %}
+                      <div class="trainer">
+                        <div><strong>{{ t.employee.first_name }} {{ t.employee.last_name }}</strong></div>
+                        <small>@{{ t.username }} · id empleado: {{ t.employee_id }}</small>
+                        <form method="post" action="{% url 'assignment_quick' %}">
+                          {% csrf_token %}
+                          <input type="hidden" name="student_username" value="{{ s.username }}">
+                          <input type="hidden" name="trainer_username" value="{{ t.username }}">
+                          <button class="assign-btn" type="submit">Asignar</button>
+                        </form>
+                      </div>
+                    {% empty %}
+                      <div class="subtle">No hay entrenadores disponibles.</div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </details>
+            </div>
+          {% empty %}
+            <div class="row"><div class="subtle">No hay estudiantes.</div></div>
+          {% endfor %}
+        </section>
+      </main>
     </div>
   </div>
 </body>
