@@ -1,29 +1,68 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Crear rutina de ejercicio</title>
+  <meta charset="UTF-8">
+  <title>Crear rutina de ejercicio</title>
+   <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <script defer src="{% static 'js/auth.js' %}"></script>
 </head>
-<body>
-<h1>Crear rutina de ejercicio</h1>
+<body class="auth-body">
+  <header class="auth-header">
+    <div class="auth-header__inner">
 
-<p>
-    Una rutina es un conjunto de ejercicios que vas a realizar en una sesión.
-    Primero selecciona los <strong>ejercicios predefinidos</strong> que ya existen en el sistema.
-    Si necesitas un ejercicio nuevo, puedes crearlo en el
-    <a href="{% url 'exercise_list' %}">catálogo de ejercicios</a>.
-</p>
+      <nav class="auth-nav">
+        <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+        <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+        <a class="btn btn--primary" href="{% url 'exercise_list' %}">Catálogo de ejercicios</a>
+      </nav>
+    </div>
+  </header>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar rutina</button>
-</form>
+  <main class="auth-main">
+    <section class="card card--pad-xl">
+      <div class="card__header">
+        <h1 class="title">Crear rutina de ejercicio</h1>
+        <p class="subtitle">
+          Una rutina es un conjunto de ejercicios que realizarás en una sesión. Primero selecciona los
+          <strong>ejercicios predefinidos</strong> que ya existen en el sistema. Si necesitas uno nuevo,
+          créalo en el <a href="{% url 'exercise_list' %}">catálogo de ejercicios</a>.
+        </p>
+      </div>
 
-<p style="margin-top: 1rem;">
-    <a href="{% url 'routine_list' %}">Volver a mis rutinas</a> |
-    <a href="{% url 'exercise_list' %}">Ir al catálogo de ejercicios</a>
-</p>
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert--success{% elif message.tags == 'warning' %}alert--warning{% else %}alert--danger{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
 
+      {% if form.non_field_errors %}
+        <div class="messages">
+          <div class="alert alert--danger">
+            {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" class="form">
+        {% csrf_token %}
+
+        {# Si quieres controlar campo por campo, reemplaza form.as_p por bloques como en routine_assign #}
+        <div class="form__stack">
+          {{ form.as_p }}
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary">Guardar rutina</button>
+          <a class="btn btn--ghost" href="{% url 'routine_list' %}">Volver a mis rutinas</a>
+          <a class="btn btn--ghost" href="{% url 'exercise_list' %}">Ir al catálogo de ejercicios</a>
+        </div>
+      </form>
+    </section>
+  </main>
 </body>
 </html>

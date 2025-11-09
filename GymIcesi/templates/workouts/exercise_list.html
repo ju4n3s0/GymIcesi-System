@@ -2,68 +2,178 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Ejercicios de entrenamiento</title>
+  <meta charset="UTF-8" />
+  <title>Catálogo de ejercicios</title>
+
+  <!-- Estilos/JS globales -->
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <script defer src="{% static 'js/auth.js' %}"></script>
 </head>
-<body>
-<h1>Catálogo de ejercicios</h1>
+<body class="auth-body">
+  <header class="auth-header">
+    <div class="auth-header__inner">
+      <nav class="auth-nav">
+        <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+        <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+        <a class="btn btn--primary" href="{% url 'routine_create' %}">Crear rutina</a>
+      </nav>
+    </div>
+  </header>
 
-<p>
-    En esta página puedes consultar los <strong>ejercicios predefinidos</strong> del sistema
-    y crear <strong>ejercicios personalizados</strong> para tus rutinas.
-</p>
+  <main class="auth-main">
+    <section class="card card--pad-xl">
+      <div class="card__header">
+        <h1 class="title">Catálogo de ejercicios</h1>
+        <p class="subtitle">
+          Consulta los <strong>ejercicios predefinidos</strong> y crea
+          <strong>ejercicios personalizados</strong> para tus rutinas.
+        </p>
+      </div>
 
-<h2>Registrar nuevo ejercicio</h2>
+      {# Mensajes globales #}
+      {% if messages %}
+        <div class="messages" role="status" aria-live="polite">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert--success{% elif message.tags == 'warning' %}alert--warning{% else %}alert--danger{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar ejercicio</button>
-</form>
+      <div class="card card--sub card--pad-lg">
+        <h2 class="title title--sm">Registrar nuevo ejercicio</h2>
 
-<hr>
+        {% if form.non_field_errors %}
+          <div class="messages" role="alert">
+            <div class="alert alert--danger">
+              {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+            </div>
+          </div>
+        {% endif %}
 
-<h2>Ejercicios registrados</h2>
+        <form method="post" class="form form--inline" novalidate>
+          {% csrf_token %}
+          <div class="form__stack">
+            {{ form.as_p }}
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn btn--primary">Guardar ejercicio</button>
+            <button type="reset" class="btn btn--ghost">Limpiar</button>
+          </div>
+        </form>
+      </div>
 
-<table border="1" cellpadding="6">
+      <div class="divider"></div>
+
+      <div class="card__header">
+  <h2 class="title title--sm">Ejercicios registrados</h2>
+  <p class="muted">Total: <strong>{{ exercises|length }}</strong></p>
+</div>
+
+<style>
+  /* Mejora visual de la tabla (no interfiere con auth.css) */
+  .table.table--pretty thead th {
+    position: sticky; top: 0; background: var(--surface, #000000ff);
+    z-index: 1; border-bottom: 1px solid rgba(0,0,0,.08);
+  }
+  .table.table--pretty tbody tr:hover { background: rgba(0,0,0,.03); }
+  .chip { display:inline-block; padding:.15rem .5rem; border-radius:999px; font-size:.82rem; border:1px solid rgba(0,0,0,.15); }
+  .chip--info   { background: #000000ff; border-color:#cfe2ff; }
+  .chip--warn   { background: #000000ff; border-color:#ffe0a6; }
+  .chip--ok     { background: #000000ff; border-color:#cfeeda; }
+  .chip--bad    { background: #000000ff; border-color:#f2b7b7; }
+  .truncate { max-width: 34ch; display:inline-block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:bottom; }
+  .table .cell-actions { white-space: nowrap; }
+  @media (max-width: 900px){
+    .truncate { max-width: 22ch; }
+  }
+</style>
+
+<div class="table-wrap">
+  <table class="table table--pretty">
     <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Tipo</th>
-            <th>Duración (min)</th>
-            <th>Dificultad</th>
-            <th>Descripción</th>
-            <th>Video demostrativo</th>
-        </tr>
+      <tr>
+        <th>Nombre</th>
+        <th>Tipo</th>
+        <th>Duración</th>
+        <th>Dificultad</th>
+        <th>Descripción</th>
+        <th class="cell-actions">Video</th>
+      </tr>
     </thead>
     <tbody>
-    {% for ex in exercises %}
+      {% for ex in exercises %}
         <tr>
-            <td>{{ ex.name }}</td>
-            <td>{{ ex.type|capfirst }}</td>
-            <td>{{ ex.duration }}</td>
-            <td>{{ ex.difficulty|capfirst }}</td>
-            <td>{{ ex.description }}</td>
-            <td>
-                {% if ex.video_url %}
-                    <a href="{{ ex.video_url }}" target="_blank">Ver video</a>
-                {% else %}
-                    No disponible
-                {% endif %}
-            </td>
+          <td><strong>{{ ex.name }}</strong></td>
+
+          <td>
+            {# Chip por tipo #}
+            {% with t=ex.type|lower %}
+              {% if t == "cardio" %}
+                <span class="chip chip--info">Cardio</span>
+              {% elif t == "fuerza" %}
+                <span class="chip chip--ok">Fuerza</span>
+              {% elif t == "movilidad" %}
+                <span class="chip chip--warn">Movilidad</span>
+              {% else %}
+                <span class="chip">{{ ex.type|capfirst }}</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+
+          <td>{{ ex.duration }}&nbsp;<span class="muted">min</span></td>
+
+          <td>
+            {# Chip por dificultad #}
+            {% with d=ex.difficulty|lower %}
+              {% if d in "baja|facil" %}
+                <span class="chip chip--ok">Fácil</span>
+              {% elif d in "media|medio" %}
+                <span class="chip chip--warn">Media</span>
+              {% elif d in "alta|dificil" %}
+                <span class="chip chip--bad">Alta</span>
+              {% else %}
+                <span class="chip">{{ ex.difficulty|capfirst }}</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+
+          <td>
+            {% if ex.description %}
+              <span class="truncate" title="{{ ex.description }}">{{ ex.description }}</span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+
+          <td class="cell-actions">
+            {% if ex.video_url %}
+              <a class="btn btn--ghost btn--xs" href="{{ ex.video_url }}" target="_blank" rel="noopener">Ver</a>
+            {% else %}
+              <span class="muted">No disponible</span>
+            {% endif %}
+          </td>
         </tr>
-    {% empty %}
+      {% empty %}
         <tr>
-            <td colspan="6">Todavía no hay ejercicios registrados.</td>
+          <td colspan="6" class="muted" style="text-align:center; padding:1rem 0;">
+            Todavía no hay ejercicios registrados.
+            <a class="btn btn--primary btn--xs" href="#top" style="margin-left:.5rem;">Crear mi primer ejercicio</a>
+          </td>
         </tr>
-    {% endfor %}
+      {% endfor %}
     </tbody>
-</table>
+  </table>
+</div>
 
-<p style="margin-top: 1rem;">
-    <a href="{% url 'routine_create' %}">Crear una rutina usando estos ejercicios</a> |
-    <a href="{% url 'routine_list' %}">Ver mis rutinas</a>
-</p>
 
+      <div class="actions">
+        <a class="btn btn--primary" href="{% url 'routine_create' %}">Crear una rutina usando estos ejercicios</a>
+        <a class="btn btn--ghost" href="{% url 'routine_list' %}">Ver mis rutinas</a>
+        <a class="btn btn--ghost" href="{% url 'reports_home' %}">Ver reportes</a>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

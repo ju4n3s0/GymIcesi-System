@@ -1,5 +1,6 @@
 # GymIcesi/forms.py
 from django import forms
+
 from .models import User, Employee
 from django.contrib.auth import authenticate
 from GymIcesi.mongo_utils import get_db
@@ -91,12 +92,19 @@ class RoutineForm(forms.Form):
     def __init__(self, *args, **kwargs):
         from . import mongo_utils  # import aquí para evitar ciclos
         super().__init__(*args, **kwargs)
+
         db = mongo_utils.get_db()
-        exercise_docs = db.exercises.find().sort("name", 1)
-        self.fields["exercises"].choices = [
-            (str(e["_id"]), f'{e["name"]} ({e["type"]})')
-            for e in exercise_docs
-        ]
+        # Trae solo lo necesario
+        cursor = db.exercises.find({}, {"name": 1, "type": 1}).sort("name", 1)
+
+        choices = []
+        for e in cursor:
+            _id = str(e.get("_id"))
+            name = e.get("name") or f"Ejercicio {_id[:6]}"
+            etype = e.get("type") or e.get("category") or "N/A"
+            choices.append((_id, f"{name} ({etype})"))
+
+        self.fields["exercises"].choices = choices
 
 #Auth
 
@@ -136,43 +144,57 @@ class InstitutionalAuthenticationForm(forms.Form):
     def get_user(self):
         return self.user_cache
         
-        
+
 class AssignRoutineForm(forms.Form):
-    """
-    Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
-    """
     user = forms.ModelChoiceField(
-        queryset=User.objects.none(),
-        label="Usuario objetivo"
+        queryset=User.objects.filter(is_active=True).order_by("username"),
+        label="Usuario objetivo",
+        widget=forms.Select(attrs={"class": "input"})
     )
     routine = forms.ChoiceField(
         label="Rutina",
-        choices=(),  # se llena en __init__ desde Mongo
-        widget=forms.RadioSelect
+        choices=[],
+        widget=forms.Select(attrs={"class": "input"})
     )
     start_date = forms.DateField(
         label="Fecha de inicio",
-        widget=forms.DateInput(attrs={"type": "date"})
+        widget=forms.DateInput(attrs={"type": "date", "class": "input"})
     )
     notes = forms.CharField(
-        label="Notas",
-        widget=forms.Textarea,
-        required=False
+        label="Notas", required=False,
+        widget=forms.Textarea(attrs={"class": "input", "rows": 3, "autocomplete": "off"})
     )
 
-    def __init__(self, *args, **kwargs):
-        from . import mongo_utils  # evita ciclos
-        super().__init__(*args, **kwargs)
-        # Usuarios activos del SQL
-        self.fields["user"].queryset = User.objects.filter(is_active=True)
 
-        # Rutinas (Mongo)
-        db = mongo_utils.get_db()
-        routines = db.routines.find({"is_active": {"$ne": False}}).sort("name", 1)
-        self.fields["routine"].choices = [
-            (str(r["_id"]), r.get("name", "(sin nombre)"))
-            for r in routines
-        ]
+from .models import User
+
+class TrainerAssignForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Usuario (STUDENT)"
+    )
+    trainer_user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Entrenador (EMPLOYEE)"
+    )
+    since = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    until = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].queryset = User.objects.filter(is_active=True, role="STUDENT").order_by("username")
+        self.fields["trainer_user"].queryset = (
+            User.objects.filter(is_active=True, role="EMPLOYEE", employee__isnull=False)
+                        .select_related("employee")
+                        .order_by("employee__last_name", "employee__first_name")
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        tuser = cleaned.get("trainer_user")
+        if tuser and tuser.employee_id is None:
+            raise forms.ValidationError("El entrenador seleccionado no tiene Employee asociado (employee_id es NULL).")
+        return cleaned
 
 # --- Seguimiento de progreso ---
 

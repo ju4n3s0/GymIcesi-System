@@ -1,0 +1,90 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Usuarios</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <script defer src="{% static 'js/auth.js' %}"></script>
+</head>
+<body class="auth-body">
+  <header class="auth-header">
+    <div class="auth-header__inner">
+      <a class="auth-brand" href="{% url 'routine_list' %}">GymIcesi</a>
+      <nav class="auth-nav">
+        <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+        <a class="btn btn--primary" href="{% url 'routine_users' %}">Usuarios</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="card card--pad-xl">
+      <div class="card__header">
+        <h1 class="title">Usuarios</h1>
+        <p class="subtitle">Elige un usuario para ver o asignar rutinas.</p>
+      </div>
+
+      {# Mensajes opcionales #}
+      {% if messages %}
+        <div class="messages">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert--success{% elif message.tags == 'warning' %}alert--warning{% else %}alert--danger{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="get" class="form form--inline" role="search" aria-label="Buscar usuarios">
+        <div class="form__row">
+          <input class="input" type="text" name="q" value="{{ query }}" placeholder="Buscar por usuario o rol" autocomplete="off">
+        </div>
+        <div class="actions">
+          <button class="btn btn--primary" type="submit">Buscar</button>
+          {% if query %}
+            <a class="btn btn--ghost" href="{% url 'routine_users' %}">Limpiar</a>
+          {% endif %}
+        </div>
+      </form>
+
+      <p class="muted" style="margin:.5rem 0">
+        Resultados: <strong>{{ page_obj.paginator.count }}</strong>
+        {% if query %} para <em>"{{ query }}"</em>{% endif %}
+      </p>
+
+      <div class="grid grid--cards" role="list">
+        {% for u in page_obj.object_list %}
+          <article class="card card--sub card--pad-lg" role="listitem">
+            <h3 class="title title--sm">@{{ u.username }}</h3>
+            <p class="muted">Rol: {{ u.role }}</p>
+            <div class="actions">
+              <a class="btn btn--primary" href="{% url 'user_routine_history' u.pk %}">Ver rutinas</a>
+              <a class="btn btn--ghost" href="{% url 'routine_assign' %}?user={{ u.pk }}">Asignar rutina</a>
+            </div>
+          </article>
+        {% empty %}
+          <div class="card card--sub card--pad-lg">
+            <p class="muted">No hay usuarios para mostrar.</p>
+            <div class="actions">
+              <a class="btn btn--ghost" href="{% url 'routine_list' %}">Volver a mis rutinas</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% if page_obj.paginator.num_pages > 1 %}
+        <div class="pager">
+          {% if page_obj.has_previous %}
+            <a class="btn btn--ghost" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">« Anterior</a>
+          {% endif %}
+          <span class="muted">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a class="btn btn--ghost" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Siguiente »</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

@@ -12,6 +12,50 @@
   --shadow:0 10px 30px rgba(0,0,0,.45);
 }
 
+
+/* ==== Ajustes de botones y barras (override) ==== */
+
+/* Botones más “grandes” y centrados */
+.auth-body .btn{
+  display: inline-flex;           /* evita colapsos de altura */
+  align-items: center;
+  justify-content: center;
+  padding: 12px 18px;             /* ⬅⬅ aquí subes el padding */
+  line-height: 1.1;
+  gap: .4rem;                     /* si llevan iconos o texto extra */
+}
+
+/* Variantes siguen el mismo padding */
+.auth-body .btn--primary,
+.auth-body .btn--ghost{
+  padding: 12px 18px;             /* asegura que las variantes no lo sobreescriban */
+}
+
+/* Grupos/barras con espacio entre botones */
+.toolbar{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;                      /* espacio entre lados */
+}
+
+.toolbar__left,
+.toolbar__right,
+.btn-group{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;                      /* ⬅⬅ separación entre botones */
+}
+
+/* Pastillas “estado” un poquito más cómodas */
+.pill{
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.pill--success{ border:1px solid #17a34a; background: #e8f7ee; }
+
+
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
@@ -97,7 +141,11 @@ body{
 .btn:hover{ background:var(--primary-600); }
 .btn:active{ transform:translateY(1px); }
 .btn--ghost{
-  background:transparent; border:1px solid var(--stroke); color:var(--text);
+  background:transparent; color:var(--text);
+  padding: var(--btn-py) var(--btn-px);
+}
+.btn--primary{ 
+  padding: var(--btn-py) var(--btn-px);
 }
 .actions{ display:flex; gap:12px; align-items:center; justify-content:space-between; margin-top:4px; }
 .helper{ font-size:13px; color:var(--muted); }
