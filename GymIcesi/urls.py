@@ -16,8 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from .views import assaignment_show
+from .views import assignment_show, assignment_quick
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('assigment/', assaignment_show, name="assaignment_show"),
+    path('assigment/', assignment_show, name="assignment_show"),
+    path('assigment/quick-assign/', assignment_quick, name = "assignment_quick"),
 ]

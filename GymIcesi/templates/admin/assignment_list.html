@@ -5,20 +5,20 @@
   <title>Lista de asignación</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{
-      --brand:#62e3e6; --line:#111; --bg:#f7ffff; --muted:#667; --card:#fff;
-    }
+    :root{ --brand:#62e3e6; --line:#111; --bg:#f7ffff; --muted:#667; --card:#fff; }
     *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:#111}
     header{background:var(--brand);padding:18px 20px;text-align:center;font-weight:600}
     .wrap{padding:20px}
     .panel{background:var(--card);border:3px solid var(--line);border-radius:14px;padding:16px}
+
+    /* Fila estudiante */
     .row{display:flex;align-items:center;justify-content:space-between;padding:14px 8px}
     .row + .row{border-top:2px solid var(--line)}
-    .student-name{font-weight:600}
-    .muted{color:var(--muted);font-size:12px}
+    .student-name{font-weight:700}
+    .muted{color:var(--muted);font-size:12px;margin-top:4px}
 
-    /* Plegable estilo "botón píldora" */
+    /* Plegable tipo botón */
     details{position:relative}
     summary{
       list-style:none;cursor:pointer;border:2px solid var(--line);border-radius:14px;
@@ -27,7 +27,7 @@
     summary::-webkit-details-marker{display:none}
     details[open] summary{border-bottom-left-radius:0;border-bottom-right-radius:0}
 
-    /* Contenido del plegable */
+    /* Dropdown del plegable */
     .dropdown{
       position:absolute;right:0;top:100%;
       background:#fff;border:2px solid var(--line);border-top:none;border-bottom-left-radius:14px;border-bottom-right-radius:14px;
@@ -35,8 +35,8 @@
       padding:10px 12px;z-index:10;
     }
     .trainer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-    .trainer{border:2px solid var(--line);border-radius:12px;padding:10px}
-    .trainer small{color:var(--muted)}
+    .trainer-card{border:2px solid var(--line);border-radius:12px;padding:10px}
+    .trainer-card small{color:var(--muted)}
     .assign-btn{
       appearance:none;border:2px solid var(--line);background:#fff;border-radius:10px;
       padding:6px 10px;cursor:pointer;font-weight:600;margin-top:8px;width:100%;
@@ -55,24 +55,56 @@
   <header>Lista de asignación</header>
 
   <div class="wrap">
+    {% if messages %}
+      <ul class="muted" style="padding-left:16px;">
+        {% for m in messages %}<li>{{ m }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
     <div class="panel">
-      {% comment %} FILAS: cada estudiante con su botón-plegable "Entrenador" a la derecha {% endcomment %}
       {% for s in students %}
         <div class="row">
+          <!-- Columna izquierda: datos del estudiante -->
           <div>
-            <div class="student-name">{{ s.first_name }} {{ s.last_name}}</div>
-            {% if s.student_id %}<div class="muted">student_id: {{ s.id }}</div>{% endif %}
+            <div class="student-name">@{{ s.username }}</div>
+            {% if s.student %}
+              <div class="muted">
+                {{ s.student.first_name }} {{ s.student.last_name }} · id: {{ s.student_id }}
+              </div>
+            {% endif %}
+
+            {% if s.assigned_trainer %}
+              <div class="muted">
+                Asignado a <strong>{{ s.assigned_trainer.first_name }} {{ s.assigned_trainer.last_name }}</strong>
+                desde {{ s.active_assignment.since|date:"Y-m-d" }}
+              </div>
+            {% elif s.active_assignment %}
+              <div class="muted">
+                Asignado a empleado {{ s.active_assignment.trainerId }}
+                desde {{ s.active_assignment.since|date:"Y-m-d" }}
+              </div>
+            {% else %}
+              <div class="muted">Sin asignación activa.</div>
+            {% endif %}
           </div>
 
+          <!-- Columna derecha: botón/plegable con lista de entrenadores -->
           <details>
-            <summary>Entrenador</summary>
+            {% if s.assigned_trainer %}
+              <summary>{{ s.assigned_trainer.first_name }} {{ s.assigned_trainer.last_name }}</summary>
+            {% elif s.active_assignment %}
+              <summary>Empleado {{ s.active_assignment.trainerId }}</summary>
+            {% else %}
+              <summary>Entrenador</summary>
+            {% endif %}
+
             <div class="dropdown">
               <div class="trainer-grid">
                 {% for t in trainers %}
-                  <div class="trainer">
-                    <div><strong>{{ t.first_name }} {{ t.last_name }}</strong></div>
-                    <small>@{{ t.username }} · id empleado: {{ t.id }}</small>
-                    {# Si ya tienes la vista de asignación rápida, deja este form; si no, quítalo #}
+                  <div class="trainer-card">
+                    <div><strong>{{ t.employee.first_name }} {{ t.employee.last_name }}</strong></div>
+                    <small>@{{ t.username }} · id empleado: {{ t.employee_id }}</small>
+                    <form method="post" action="{% url 'assignment_quick' %}">
                       {% csrf_token %}
                       <input type="hidden" name="student_username" value="{{ s.username }}">
                       <input type="hidden" name="trainer_username" value="{{ t.username }}">
@@ -80,14 +112,14 @@
                     </form>
                   </div>
                 {% empty %}
-                  <div class="muted">No hay entrenadores (EMPLOYEE).</div>
+                  <div class="muted">No hay entrenadores disponibles.</div>
                 {% endfor %}
               </div>
             </div>
           </details>
         </div>
       {% empty %}
-        <p class="muted">No hay estudiantes (role=STUDENT).</p>
+        <p class="muted">No hay estudiantes.</p>
       {% endfor %}
     </div>
   </div>

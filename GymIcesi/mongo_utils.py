@@ -69,3 +69,38 @@ def inactivate_assignment_by_id(_id):
     col = ensure_indexes()
     now = dt.datetime.utcnow()
     col.update_one({"_id": ObjectId(_id)}, {"$set": {"status": "inactive", "until": now, "updatedAt": now}})
+
+from typing import Iterable, Dict, Any
+
+def ping() -> dict:
+    """Prueba conexión/auth rápidamente (útil para debug)."""
+    return get_client().admin.command("ping")
+
+def get_collection():
+    """Acceso directo a la colección de asignaciones con índices garantizados."""
+    return ensure_indexes()
+
+def get_active_assignment(user_id: str) -> dict | None:
+    """Devuelve el documento ACTIVO de un usuario (o None)."""
+    col = get_collection()
+    return col.find_one(
+        {"userId": user_id, "status": "active"},
+        {"userId": 1, "trainerId": 1, "since": 1, "until": 1}  # proyección
+    )
+
+def get_active_map(user_ids: Iterable[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Dado un iterable de usernames, retorna un dict:
+      { "<username>": {doc activo}, ... }
+    Solo devuelve entradas para los que tengan asignación activa.
+    """
+    ulist = list(user_ids)
+    if not ulist:
+        return {}
+
+    col = get_collection()
+    cur = col.find(
+        {"userId": {"$in": ulist}, "status": "active"},
+        {"userId": 1, "trainerId": 1, "since": 1, "until": 1}
+    )
+    return {doc["userId"]: doc for doc in cur}
