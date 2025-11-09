@@ -29,7 +29,7 @@ def assignment_show(request):
                 .order_by("username"))
     
     trainers = (UniUser.objects
-                .filter(role="EMPLOYEE", is_active=True, employee__isnull=False)
+                .filter(role="EMPLOYEE", is_active=True, employee__isnull=False,employee__employee_type="Instructor")
                 .select_related("employee")
                 .order_by("employee__last_name", "employee__first_name"))
 
@@ -52,6 +52,35 @@ def assignment_show(request):
         "students": students,
         "trainers": trainers,
     })
+
+def assignment_quick(request):
+        student_username = (request.POST.get("student_username") or "").strip()
+        trainer_username  = (request.POST.get("trainer_username") or "").strip()
+        try:
+            suser = UniUser.objects.get(username=student_username, role="STUDENT")
+        except UniUser.DoesNotExist:
+            messages.error(request, "Estudiante inválido.")
+            return redirect("assignment_show")
+
+        try:
+            tuser = UniUser.objects.get(username=trainer_username, role="EMPLOYEE")
+        except UniUser.DoesNotExist:
+            messages.error(request, "Entrenador inválido.")
+            return redirect("assignment_show")
+
+        if not tuser.employee_id:
+            messages.error(request, "El entrenador seleccionado no tiene Employee asociado.")
+            return redirect("assignment_show")
+        
+        mongo_utils.upsert_active_assignment(
+            user_id=suser.username,
+            trainer_id=tuser.employee_id,
+        )
+
+        emp = tuser.employee  # objeto Employee
+        emp_name = f"{emp.first_name} {emp.last_name}" if emp else f"@{tuser.username}"
+        messages.success(request, f"@{suser.username} asignado a {emp_name}.")
+        return redirect("assignment_show")
 
 
 
@@ -466,38 +495,6 @@ def user_routine_history(request, user_pk: str):
         "state": state,
     })
 
-
-
-
-def assignment_quick(request):
-        student_username = (request.POST.get("student_username") or "").strip()
-        trainer_username  = (request.POST.get("trainer_username") or "").strip()
-        try:
-            suser = UniUser.objects.get(username=student_username, role="STUDENT")
-        except UniUser.DoesNotExist:
-            messages.error(request, "Estudiante inválido.")
-            return redirect("assignment_show")
-
-        try:
-            tuser = UniUser.objects.get(username=trainer_username, role="EMPLOYEE")
-        except UniUser.DoesNotExist:
-            messages.error(request, "Entrenador inválido.")
-            return redirect("assignment_show")
-
-        if not tuser.employee_id:
-            messages.error(request, "El entrenador seleccionado no tiene Employee asociado.")
-            return redirect("assignment_show")
-        
-        mongo_utils.upsert_active_assignment(
-            user_id=suser.username,
-            trainer_id=tuser.employee_id,
-        )
-
-        emp = tuser.employee  # objeto Employee
-        emp_name = f"{emp.first_name} {emp.last_name}" if emp else f"@{tuser.username}"
-        messages.success(request, f"@{suser.username} asignado a {emp_name}.")
-        return redirect("assignment_show")
-    
     
 @login_required
 def report_user_assignments(request):
