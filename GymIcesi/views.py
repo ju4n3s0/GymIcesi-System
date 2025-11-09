@@ -1,5 +1,7 @@
 # GymIcesi/views.py
 
+import csv
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.text import slugify
 from bson import ObjectId
@@ -263,95 +265,93 @@ def is_trainer_or_admin(user):
         employee_type__name__in=ALLOWED_EMPLOYEE_TYPES
     ).exists()
 
+def _resolve_user_from_param(param: str):
+    """
+    Devuelve un User por pk (numérico) o por username (string).
+    """
+    if not param:
+        return None
+    if param.isdigit():
+        return User.objects.filter(pk=int(param), is_active=True).first()
+    return User.objects.filter(username=param, is_active=True).first()
+
+
 @login_required
 #@user_passes_test(is_trainer_or_admin)
 def routine_assign(request):
     """
-    Permite a un trainer/admin asignar una rutina (Mongo) a cualquier usuario (SQL),
-    siguiendo el patrón de routine_create.
+    Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
+    GUIADA por el patrón de routine_create:
+      - Lee las rutinas desde Mongo (colección 'routines').
+      - Inserta una asignación en Mongo (colección 'user_routines').
     """
     db = mongo_utils.get_db()
     routines_coll = db.routines
-    assignments_coll = db.user_routines  # colección nueva
+    assignments_coll = db.user_routines  # colección de asignaciones
 
     if request.method == "POST":
         form = AssignRoutineForm(request.POST)
-        if form.is_valid():
-            data = form.cleaned_data
+        if not form.is_valid():
+            return render(request, "workouts/routine_assign.html", {"form": form})
 
-            # 1) Validar rutina Mongo
-            try:
-                routine_oid = ObjectId(data["routine"])
-            except Exception:
-                messages.error(request, "Rutina inválida.")
-                return render(request, "workouts/routine_assign.html", {"form": form})
+        data = form.cleaned_data
 
-            routine_doc = routines_coll.find_one({"_id": routine_oid})
-            if not routine_doc:
-                messages.error(request, "No se encontró la rutina seleccionada.")
-                return render(request, "workouts/routine_assign.html", {"form": form})
+        # 1) Validar rutina Mongo (solo en POST)
+        routine_id_str = data["routine"]
+        try:
+            routine_oid = ObjectId(routine_id_str)
+        except Exception:
+            messages.error(request, "Rutina inválida.")
+            return render(request, "workouts/routine_assign.html", {"form": form})
 
-            # 2) Usuario objetivo (SQL)
-            target_user = data["user"]
+        routine_doc = routines_coll.find_one({"_id": routine_oid})
+        if not routine_doc:
+            messages.error(request, "No se encontró la rutina seleccionada.")
+            return render(request, "workouts/routine_assign.html", {"form": form})
 
-            # 3) Antiduplicado por día
-            start_date = data["start_date"]
-            existing = assignments_coll.find_one({
-                "routineId": routine_oid,
-                "targetUserId": target_user.id,
-                "startDate": start_date.isoformat(),
-            })
-            if existing:
-                messages.warning(
-                    request,
-                    "Ya existe una asignación de esta rutina para ese usuario en la misma fecha."
-                )
-                return redirect("user_routine_history", user_id=target_user.id)
+        # 2) Usuario objetivo (SQL) viene del form (ModelChoiceField)
+        target_user = data["user"]
 
-            # 4) Documento a insertar
-            doc = {
-                "routineId": routine_oid,
-                "routineName": routine_doc.get("name"),
-                "targetUserId": target_user.id,
-                "targetUsername": target_user.username,
-                "assignedByUserId": getattr(request.user, "id", None),
-                "assignedByUsername": getattr(request.user, "username", None),
-                "assignedByEmployeeId": getattr(request.user, "employee_id", None),
-                "startDate": start_date.isoformat(),
-                "notes": data.get("notes", ""),
-                "isActive": True,
-                "createdAt": timezone.now(),
-            }
+        # 3) Regla anti-duplicado por fecha (si tienes índice único, esto es preventivo)
+        start_date = data["start_date"]
+        start_iso = start_date.isoformat()
 
+        doc = {
+            "routineId": routine_oid,
+            "routineName": routine_doc.get("name"),
+            "targetUserId": target_user.pk,                  # usa pk, no "id"
+            "targetUsername": target_user.username,
+            "assignedByUserId": getattr(request.user, "pk", None),
+            "assignedByUsername": getattr(request.user, "username", None),
+            "assignedByEmployeeId": getattr(request.user, "employee_id", None),
+            "startDate": start_iso,
+            "notes": data.get("notes", ""),
+            "isActive": True,
+            "createdAt": timezone.now(),
+        }
+
+        try:
             assignments_coll.insert_one(doc)
-            messages.success(request, "Rutina asignada correctamente.")
-            return redirect("user_routine_history", user_id=target_user.id)
-        # Si el form no es válido, se cae al render de abajo con errores
-    # GET (prefill)
-    else:
-        initial = {}
-        user_pk = request.GET.get("user")
-        if user_pk:                          
-            initial["user"] = user_pk
-        form = AssignRoutineForm(initial=initial)
+        except DuplicateKeyError:
+            messages.warning(
+                request,
+                "Ya existe una asignación de esta rutina para ese usuario en la misma fecha."
+            )
+            return redirect("user_routine_history", user_id=target_user.pk)
 
-    # Al construir el documento:
-    doc = {
-        "routineId": routine_oid,
-        "routineName": routine_doc.get("name"),
-        "targetUserId": target_user.pk,               
-        "targetUsername": target_user.username,
-        "assignedByUserId": request.user.pk,        
-        "assignedByUsername": request.user.username,
-        "assignedByEmployeeId": getattr(request.user, "employee_id", None),
-        "startDate": start_date.isoformat(),
-        "notes": data.get("notes", ""),
-        "isActive": True,
-        "createdAt": timezone.now(),
-    }
+        messages.success(request, "Rutina asignada correctamente.")
+        return redirect("user_routine_history", user_id=target_user.pk)
 
+    # GET — preparar formulario con 'user' precargado (pk o username)
+    initial = {}
+    user_param = request.GET.get("user")
+    if user_param:
+        u = _resolve_user_from_param(user_param)
+        if u:
+            initial["user"] = u.pk  # precarga el ModelChoiceField
 
-    return redirect("user_routine_history", user_pk=target_user.pk) 
+    form = AssignRoutineForm(initial=initial)
+    return render(request, "workouts/routine_assign.html", {"form": form})
 
 
 @login_required
@@ -438,3 +438,193 @@ def assignment_quick(request):
         emp_name = f"{emp.first_name} {emp.last_name}" if emp else f"@{tuser.username}"
         messages.success(request, f"@{suser.username} asignado a {emp_name}.")
         return redirect("assignment_show")
+    
+    
+@login_required
+def report_user_assignments(request):
+    """
+    Informe por usuario: total, activas, inactivas, primera/última fecha, rutinas únicas.
+    Soporta ?q=<texto> para filtrar por username/rol y ?format=csv para exportar.
+    """
+    db = mongo_utils.get_db()
+    coll = db.user_routines
+
+    # Agregación en Mongo
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$targetUserId",
+                "total": {"$sum": 1},
+                "activas": {"$sum": {"$cond": ["$isActive", 1, 0]}},
+                "inactivas": {"$sum": {"$cond": ["$isActive", 0, 1]}},
+                "primeraFecha": {"$min": "$startDate"},
+                "ultimaFecha": {"$max": "$startDate"},
+                "rutinasUnicas": {"$addToSet": "$routineId"},
+            }
+        },
+        {"$sort": {"total": -1}},
+    ]
+    agg = list(coll.aggregate(pipeline))
+
+    # Mapeo de usuarios SQL: usamos pk, no "id"
+    user_pks = [a["_id"] for a in agg if a.get("_id") is not None]
+    # soporta PK string o numérico
+    users_qs = User.objects.filter(pk__in=user_pks, is_active=True)
+
+    # Filtro de búsqueda por ?q
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        users_qs = users_qs.filter(Q(username__icontains=q) | Q(role__icontains=q))
+
+    user_map = {str(u.pk): u for u in users_qs}
+
+    # Unimos resultados de Mongo con usuarios SQL
+    rows = []
+    for a in agg:
+        pk = str(a["_id"])
+        u = user_map.get(pk)
+        if not u:
+            continue
+        rows.append({
+            "user_pk": u.pk,
+            "username": u.username,
+            "role": getattr(u, "role", ""),
+            "total": a.get("total", 0),
+            "activas": a.get("activas", 0),
+            "inactivas": a.get("inactivas", 0),
+            "primeraFecha": a.get("primeraFecha"),
+            "ultimaFecha": a.get("ultimaFecha"),
+            "rutinasUnicas": len(a.get("rutinasUnicas", [])),
+        })
+
+    # Exportación CSV si ?format=csv
+    if request.GET.get("format") == "csv":
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="reporte_usuarios.csv"'
+        writer = csv.writer(resp)
+        writer.writerow([
+            "username", "role", "total", "activas", "inactivas",
+            "rutinas_unicas", "primera_fecha", "ultima_fecha"
+        ])
+        for r in rows:
+            writer.writerow([
+                r["username"], r["role"], r["total"], r["activas"], r["inactivas"],
+                r["rutinasUnicas"], r["primeraFecha"], r["ultimaFecha"]
+            ])
+        return resp
+
+    return render(request, "reports/report_user_assignments.html", {
+        "rows": rows,
+        "query": q,
+    })
+    
+    
+@login_required
+def report_users_without_routines(request):
+    """
+    Usuarios activos sin ninguna asignación en Mongo (user_routines).
+    Soporta ?q= para filtrar (username/rol) y ?format=csv para exportar.
+    """
+    db = mongo_utils.get_db()
+    coll = db.user_routines
+
+    # Todos los targetUserId con alguna asignación
+    assigned_ids = set()
+    for doc in coll.aggregate([
+        {"$group": {"_id": "$targetUserId"}},
+    ]):
+        if doc["_id"] is not None:
+            assigned_ids.add(str(doc["_id"]))
+
+    qs = User.objects.filter(is_active=True).exclude(pk__in=assigned_ids)
+
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        qs = qs.filter(Q(username__icontains=q) | Q(role__icontains=q))
+
+    rows = [
+        {"user_pk": u.pk, "username": u.username, "role": getattr(u, "role", "")}
+        for u in qs
+    ]
+
+    if request.GET.get("format") == "csv":
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="usuarios_sin_rutinas.csv"'
+        w = csv.writer(resp)
+        w.writerow(["username", "role"])
+        for r in rows:
+            w.writerow([r["username"], r["role"]])
+        return resp
+
+    return render(request, "reports/report_users_without_routines.html", {
+        "rows": rows,
+        "query": q,
+    })
+    
+@login_required
+def report_top_exercises(request):
+    """
+    Top ejercicios más asignados (conteo de items usados en rutinas asignadas).
+    Opcional: ?type=cardio|fuerza|movilidad (filtro) y ?limit=20 (top N).
+    ?format=csv para exportar.
+    """
+    db = mongo_utils.get_db()
+    ur = db.user_routines
+    routines = db.routines
+
+    ex_type = (request.GET.get("type") or "").strip().lower()
+    try:
+        limit = max(1, int(request.GET.get("limit", "20")))
+    except ValueError:
+        limit = 20
+
+    # Pipeline: user_routines -> lookup routines -> unwind items -> (filtro por tipo) -> group
+    pipeline = [
+        {"$lookup": {
+            "from": routines.name,
+            "localField": "routineId",
+            "foreignField": "_id",
+            "as": "routine"
+        }},
+        {"$unwind": "$routine"},
+        {"$unwind": "$routine.items"},
+    ]
+    if ex_type:
+        pipeline.append({"$match": {"routine.items.type": {"$regex": f"^{ex_type}$", "$options": "i"}}})
+    pipeline += [
+        {"$group": {
+            "_id": {"name": "$routine.items.exerciseName", "type": "$routine.items.type"},
+            "vecesAsignado": {"$sum": 1}
+        }},
+        {"$sort": {"vecesAsignado": -1, "_id.name": 1}},
+        {"$limit": limit},
+    ]
+
+    rows = []
+    for d in ur.aggregate(pipeline):
+        _id = d["_id"] or {}
+        rows.append({
+            "exerciseName": _id.get("name") or "(sin nombre)",
+            "type": _id.get("type") or "",
+            "count": d.get("vecesAsignado", 0),
+        })
+
+    if request.GET.get("format") == "csv":
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = 'attachment; filename="top_ejercicios.csv"'
+        w = csv.writer(resp)
+        w.writerow(["exercise_name", "type", "veces_asignado"])
+        for r in rows:
+            w.writerow([r["exerciseName"], r["type"], r["count"]])
+        return resp
+
+    return render(request, "reports/report_top_exercises.html", {
+        "rows": rows,
+        "filter_type": ex_type,
+        "limit": limit,
+    })
+    
+@login_required
+#@user_passes_test(is_trainer_or_admin)
+def reports_home(request):
+    return render(request, "reports/reports_home.html")

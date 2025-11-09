@@ -116,7 +116,8 @@
             <label class="label" for="{{ form.notes.id_for_label }}">Notas</label>
             <div class="control">
               {# Si quieres evitar autocompletado ruidoso #}
-              {{ form.notes|add_class:"input" }}
+              {{ form.notes }}
+
             </div>
             {% if form.notes.help_text %}{% comment %}Puedes añadir autocomplete="off" con un widget si lo prefieres{% endcomment %}{% endif %}
             {% if form.notes.errors %}
@@ -128,6 +129,7 @@
         <div class="actions">
           <button type="submit" class="btn btn--primary">Asignar rutina</button>
           <a class="btn btn--ghost" href="{% url 'routine_users' %}">Ver usuarios y rutinas</a>
+          <a class="btn btn--ghost" href="{% url 'reports_home' %}">Ver reportes</a>
           <a class="btn btn--ghost" href="{% url 'routine_list' %}">Volver a mis rutinas</a>
         </div>
       </form>

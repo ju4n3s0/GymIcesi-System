@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reports</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body class="auth-body">
+<header class="auth-header">
+  <div class="auth-header__inner">
+    <a class="auth-brand" href="{% url 'routine_users' %}">GymIcesi</a>
+    <nav class="auth-nav">
+      <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+      <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+    </nav>
+  </div>
+</header>
+
+<main class="auth-main">
+  <section class="card card--pad-xl">
+    <div class="card__header">
+      <h1 class="title">Centro de informes</h1>
+      <p class="subtitle">Analíticas rápidas para entrenadores y admins.</p>
+    </div>
+
+    <div class="grid grid--cards">
+      <article class="card card--sub card--pad-lg">
+        <h3 class="title title--sm">Asignaciones por usuario</h3>
+        <p class="muted">Totales, activas/inactivas y fechas.</p>
+        <div class="actions">
+          <a class="btn btn--primary" href="{% url 'report_user_assignments' %}">Abrir</a>
+        </div>
+      </article>
+
+      <article class="card card--sub card--pad-lg">
+        <h3 class="title title--sm">Usuarios sin rutinas</h3>
+        <p class="muted">Activos en SQL que nunca han sido asignados.</p>
+        <div class="actions">
+          <a class="btn btn--primary" href="{% url 'report_users_without_routines' %}">Abrir</a>
+        </div>
+      </article>
+
+      <article class="card card--sub card--pad-lg">
+        <h3 class="title title--sm">Top ejercicios</h3>
+        <p class="muted">Ejercicios más usados en asignaciones.</p>
+        <div class="actions">
+          <a class="btn btn--primary" href="{% url 'report_top_exercises' %}">Abrir</a>
+        </div>
+      </article>
+    </div>
+  </section>
+</main>
+</body>
+</html>

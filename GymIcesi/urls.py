@@ -57,7 +57,13 @@ urlpatterns = [
     path('assigment/quick-assign/', assignment_quick, name = "assignment_quick"),
     
     path("workouts/users/", views.routine_users, name="routine_users"),
-    path("workouts/users/<str:user_pk>/routines/",views.user_routine_history,name="user_routine_history")
+    path("workouts/users/<str:user_pk>/routines/",views.user_routine_history,name="user_routine_history"),
+    
+    
+    path("reports/", views.reports_home, name="reports_home"),
+    path("reports/users/", views.report_user_assignments, name="report_user_assignments"),
+    path("reports/users/without/", views.report_users_without_routines, name="report_users_without_routines"),
+    path("reports/exercises/top/", views.report_top_exercises, name="report_top_exercises"),
 ]
 
 if settings.DEBUG:
