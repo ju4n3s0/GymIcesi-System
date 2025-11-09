@@ -1,8 +1,14 @@
 # mongo_utils.py
+from django import db
 from pymongo import MongoClient, ASCENDING
 from django.conf import settings
 import datetime as dt
 from bson import ObjectId
+from pymongo import MongoClient
+from bson import ObjectId
+import datetime
+
+
 
 
 
@@ -115,11 +121,19 @@ def insert_progress_log(user_id, exercise_id, date, reps=None, weight=None):
 
     return db.progress_logs.insert_one(doc)
 
+
 def get_exercise_name_by_id(exercise_id):
     db = get_db()
     exercise = db.exercises.find_one({"_id": ObjectId(exercise_id)})
     return exercise.get("name", "Desconocido") if exercise else "Desconocido"
 
+
+
+def get_progress_logs_by_user(user_id):
+    db = get_db()
+    return list(
+        db.progress_logs.find({"userId": user_id}).sort("date", -1)
+    )
 
 
 

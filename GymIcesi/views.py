@@ -319,27 +319,22 @@ def assignment_list(request):
 
 @login_required
 def progress_list(request):
-    logs = mongo_utils.list_progress_logs(request.user.username)
+    logs = mongo_utils.get_progress_logs_by_user(request.user.username)
     records = []
 
     for log in logs:
         date = log.get("date")
 
         for entry in log.get("entries", []):
-            exercise_id = entry.get("exerciseId")
-            first_set = entry.get("sets", [{}])[0]
+            exercise_name = entry.get("exerciseName", "Desconocido")
 
-            exercise_name = (
-                mongo_utils.get_exercise_name_by_id(ObjectId(exercise_id))
-                if exercise_id else "Desconocido"
-            )
-
-            records.append({
-                "date": date,
-                "exercise_name": exercise_name,
-                "repetitions": first_set.get("reps", "-"),
-                "weight": first_set.get("weight", "-"),
-            })
+            for set_data in entry.get("sets", []):
+                records.append({
+                    "date": date,
+                    "exercise_name": exercise_name,
+                    "reps": set_data.get("reps", "-"),
+                    "weight": set_data.get("weight", "-"),
+                })
 
     return render(request, "progress/progress_list.html", {"records": records})
 
@@ -359,7 +354,7 @@ def progress_create(request):
 
             mongo_utils.insert_progress_log(
                 user_id=request.user.username,
-                exercise_id=str(cd["exercise"]),  # ✅ enviamos correctamente el ID
+                exercise_id=cd["exercise"],  # ✅ pasamos el ObjectId como string
                 date=date,
                 reps=cd.get("reps"),
                 weight=cd.get("weight"),
@@ -374,3 +369,4 @@ def progress_create(request):
         form = ProgressLogForm()
 
     return render(request, "progress/progress_form.html", {"form": form})
+
