@@ -1,6 +1,7 @@
 # GymIcesi/forms.py
 from django import forms
 from .models import User, Employee
+from django.contrib.auth import authenticate
 
 EXERCISE_TYPE_CHOICES = [
     ("cardio", "Cardio"),
@@ -90,6 +91,44 @@ class RoutineForm(forms.Form):
             (str(e["_id"]), f'{e["name"]} ({e["type"]})')
             for e in exercise_docs
         ]
+
+#Auth
+
+class InstitutionalAuthenticationForm(forms.Form):
+    email = forms.EmailField(label="Correo institucional", widget=forms.EmailInput(attrs={
+        "autocomplete": "email",
+        "class": "input",
+        "placeholder": "usuario@dominio.edu.co",
+    }))
+    password = forms.CharField(label="Contraseña", strip=False, widget=forms.PasswordInput(attrs={
+        "autocomplete": "current-password",
+        "class": "input",
+        "placeholder": "Tu contraseña",
+    }))
+
+    error_messages = {
+        "invalid_login": "Correo o contraseña inválidos.",
+        "inactive": "Esta cuenta está inactiva.",
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+        self.user_cache = None
+
+    def clean(self):
+        email = self.cleaned_data.get("email")
+        password = self.cleaned_data.get("password")
+        if email and password:
+            self.user_cache = authenticate(self.request, email=email, password=password)
+            if self.user_cache is None:
+                raise forms.ValidationError(self.error_messages["invalid_login"], code="invalid_login")
+            if not self.user_cache.is_active:
+                raise forms.ValidationError(self.error_messages["inactive"], code="inactive")
+        return self.cleaned_data
+
+    def get_user(self):
+        return self.user_cache
         
         
 class AssignRoutineForm(forms.Form):

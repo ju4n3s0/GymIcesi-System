@@ -17,15 +17,29 @@ Including another URLconf
 import os
 from django.contrib import admin
 from django.urls import path
+from . import views 
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 
 from .views import login_user
 
-from GymIcesi import views
+from django.urls import include
+from django.contrib.auth import views as auth_views
+from .views import exercise_list, routine_list, routine_create 
+from django.views.generic import RedirectView
+from GymIcesi.forms import InstitutionalAuthenticationForm
 
 urlpatterns = [
+
+    path("", RedirectView.as_view(pattern_name="accounts_login", permanent=False)),
+
+    path("admin/", admin.site.urls),
+
+    #Auth
+    path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html", authentication_form=InstitutionalAuthenticationForm,), name="accounts_login",),
+    path("accounts/logout/", auth_views.LogoutView.as_view(), name="accounts_logout"),
+
     path('', lambda request: redirect('login', permanent=False)),
     path('login/', login_user, name='login'),
     path('admin/', admin.site.urls),
@@ -35,6 +49,9 @@ urlpatterns = [
     # Rutinas
     path("workouts/routines/", views.routine_list, name="routine_list"),
     path("workouts/routines/new/", views.routine_create, name="routine_create"),
+
+
+
     path("workouts/assign/", views.routine_assign, name="routine_assign"),
     path("admin/assignments/", views.assignment_list, name="assignment_list"),
 ]

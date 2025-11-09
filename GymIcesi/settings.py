@@ -28,20 +28,18 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-LOGIN_URL = "/admin/login/"
-
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'GymIcesi', 
+    "GymIcesi",                    
+    "django.contrib.contenttypes",
+    "django.contrib.auth",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.admin", 
 ]
 
 MIDDLEWARE = [
@@ -59,7 +57,7 @@ ROOT_URLCONF = 'GymIcesi.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,15 +77,19 @@ WSGI_APPLICATION = 'GymIcesi.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'railway',
-        'USER': 'postgres',
-        'PASSWORD': 'uinozukDmxeOqVTaDauIgWcobujiSYyW',
-        'HOST': 'yamanote.proxy.rlwy.net',
-        'PORT': '20415',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "railway",
+        "USER": "postgres",
+        "PASSWORD": "uinozukDmxeOqVTaDauIgWcobujiSYyW",
+        "HOST": "yamanote.proxy.rlwy.net",
+        "PORT": "20415",
+        "OPTIONS": {
+            "options": "-c search_path=gymicesi_app,public"
+        },
     }
 }
+
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://myAtlasDBUser:16890145@gymicesicluster.w8h8o4l.mongodb.net/")
 MONGO_DBNAME = os.getenv("MONGO_DBNAME", "gymicesidb")
@@ -133,3 +135,17 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+#Auth
+
+AUTHENTICATION_BACKENDS = [
+    "GymIcesi.auth_backend.InstitutionalBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+AUTH_USER_MODEL = "GymIcesi.AuthUser"
+LOGIN_URL = "accounts_login"
+LOGIN_REDIRECT_URL = "exercise_list"
+LOGOUT_REDIRECT_URL = "accounts_login"
+
+

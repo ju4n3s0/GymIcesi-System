@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ingresar | GymIcesi</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+
+<main class="auth">
+  <section class="auth__card">
+
+    <!-- Lado branding (negro/azul) -->
+    <aside class="auth__side">
+      <div class="brand">
+        <div class="brand__logo" aria-hidden="true">
+          <!-- SVG mancuerna en azul -->
+          <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <path d="M5 8v8M3 9v6M9 10v4M15 10v4M19 8v8M21 9v6M9 12h6" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand__name">GymIcesi</div>
+      </div>
+
+      <h2 class="side__headline">Entrena mejor, sin fricción</h2>
+      <p class="side__sub">Inicia sesión para acceder a tus rutinas y catálogo de ejercicios.</p>
+    </aside>
+
+    <!-- Lado Formulario -->
+    <div class="auth__main">
+      <h1 class="auth__title">Bienvenido</h1>
+      <p class="auth__desc">Ingresa con tu usuario y contraseña.</p>
+
+      {% if form.errors %}
+        <div class="alert alert--error">
+          Usuario o contraseña inválidos. Intenta nuevamente.
+        </div>
+      {% endif %}
+
+      <form method="post" class="form" data-auth-form>
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <div class="form__row">
+            <label for="{{ form.email.id_for_label }}" class="label">Correo</label>
+            {{ form.email }}
+        </div>
+
+        <div class="form__row" style="position:relative;">
+            <label for="{{ form.password.id_for_label }}" class="label">Contraseña</label>
+            {{ form.password }}
+            <button type="button" class="field__btn" data-toggle="password" aria-label="Mostrar/ocultar contraseña">
+            👁
+            </button>
+        </div>
+
+        <button type="submit" class="btn">Ingresar</button>
+
+        <div class="actions">
+            <span class="helper">¿Olvidaste tu contraseña?</span>
+            <a class="btn btn--ghost" href="{% url 'exercise_list' %}">Ver catálogo</a>
+        </div>
+        </form>
+
+
+      <p class="meta">© {% now "Y" %} GymIcesi. Todos los derechos reservados.</p>
+    </div>
+  </section>
+</main>
+
+<script src="{% static 'js/auth.js' %}"></script>
+</body>
+</html>
