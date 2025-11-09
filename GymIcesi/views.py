@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from bson import ObjectId
 from django.contrib.auth.decorators import login_required,user_passes_test
-from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
 
 from django.contrib.auth import authenticate, login
@@ -13,6 +13,8 @@ from .models import User, Employee
 from GymIcesi.models import Student, Employee
 from .models import User as UniUser 
 from . import mongo_utils
+from django.core.paginator import Paginator
+from django.db.models import Q
     
 
 def assignment_show(request):
@@ -262,17 +264,15 @@ def is_trainer_or_admin(user):
     ).exists()
 
 @login_required
-@user_passes_test(is_trainer_or_admin)  
+#@user_passes_test(is_trainer_or_admin)
 def routine_assign(request):
     """
-    Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
-    GUIADA por el patrón de routine_create:
-      - Lee las rutinas desde Mongo (colección 'routines').
-      - Inserta una asignación en Mongo (colección 'user_routines').
+    Permite a un trainer/admin asignar una rutina (Mongo) a cualquier usuario (SQL),
+    siguiendo el patrón de routine_create.
     """
     db = mongo_utils.get_db()
     routines_coll = db.routines
-    assignments_coll = db.user_routines  # NUEVA colección
+    assignments_coll = db.user_routines  # colección nueva
 
     if request.method == "POST":
         form = AssignRoutineForm(request.POST)
@@ -294,7 +294,7 @@ def routine_assign(request):
             # 2) Usuario objetivo (SQL)
             target_user = data["user"]
 
-            # 3) Regla anti-duplicado por día (opcional, igual que unique_together)
+            # 3) Antiduplicado por día
             start_date = data["start_date"]
             existing = assignments_coll.find_one({
                 "routineId": routine_oid,
@@ -306,40 +306,106 @@ def routine_assign(request):
                     request,
                     "Ya existe una asignación de esta rutina para ese usuario en la misma fecha."
                 )
-                return redirect("assignment_list")
+                return redirect("user_routine_history", user_id=target_user.id)
 
-            # 4) Construir documento (siguiendo tu estilo camelCase y createdAt)
+            # 4) Documento a insertar
             doc = {
                 "routineId": routine_oid,
                 "routineName": routine_doc.get("name"),
                 "targetUserId": target_user.id,
                 "targetUsername": target_user.username,
-                # quién asigna:
                 "assignedByUserId": getattr(request.user, "id", None),
                 "assignedByUsername": getattr(request.user, "username", None),
                 "assignedByEmployeeId": getattr(request.user, "employee_id", None),
-                # datos de negocio:
                 "startDate": start_date.isoformat(),
                 "notes": data.get("notes", ""),
                 "isActive": True,
-                # auditoría:
                 "createdAt": timezone.now(),
             }
 
             assignments_coll.insert_one(doc)
             messages.success(request, "Rutina asignada correctamente.")
-            return redirect("assignment_list")
+            return redirect("user_routine_history", user_id=target_user.id)
+        # Si el form no es válido, se cae al render de abajo con errores
+    # GET (prefill)
     else:
-        form = AssignRoutineForm()
+        initial = {}
+        user_pk = request.GET.get("user")
+        if user_pk:                          
+            initial["user"] = user_pk
+        form = AssignRoutineForm(initial=initial)
 
-    return render(request, "workouts/routine_assign.html", {"form": form})
+    # Al construir el documento:
+    doc = {
+        "routineId": routine_oid,
+        "routineName": routine_doc.get("name"),
+        "targetUserId": target_user.pk,               
+        "targetUsername": target_user.username,
+        "assignedByUserId": request.user.pk,        
+        "assignedByUsername": request.user.username,
+        "assignedByEmployeeId": getattr(request.user, "employee_id", None),
+        "startDate": start_date.isoformat(),
+        "notes": data.get("notes", ""),
+        "isActive": True,
+        "createdAt": timezone.now(),
+    }
+
+
+    return redirect("user_routine_history", user_pk=target_user.pk) 
+
 
 @login_required
-@user_passes_test(is_trainer_or_admin)
-def assignment_list(request):
+#@user_passes_test(is_trainer_or_admin)
+def routine_users(request):
+    """
+    Lista de usuarios visibles para trainer/admin.
+    Usa pk (no 'id') y busca por username/role (campos existentes).
+    """
+    q = (request.GET.get("q") or "").strip()
+
+    users_qs = (
+        User.objects
+        .filter(is_active=True)
+        .exclude(pk=request.user.pk)                  # ⬅️ reemplaza id por pk
+    )
+
+    if q:
+        users_qs = users_qs.filter(
+            Q(username__icontains=q) | Q(role__icontains=q)  # ⬅️ busca en campos reales
+        )
+
+    users_qs = users_qs.order_by("username")          # ⬅️ ordena por campo real
+
+    paginator = Paginator(users_qs, 12)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "workouts/routine_users.html", {
+        "page_obj": page_obj,
+        "query": q,
+    })
+
+
+@login_required
+#@user_passes_test(is_trainer_or_admin)
+def user_routine_history(request, user_pk: str):
+    target_user = get_object_or_404(User, pk=user_pk, is_active=True)  # ⬅️ pk, no id
+
     db = mongo_utils.get_db()
-    assignments = list(db.user_routines.find().sort("createdAt", -1))
-    return render(request, "admin/assignment_list.html", {"assignments": assignments})
+    assignments = list(
+        db.user_routines.find({"targetUserId": target_user.pk}).sort("createdAt", -1)
+    )
+
+    state = (request.GET.get("state") or "").lower()
+    if state == "active":
+        assignments = [a for a in assignments if a.get("isActive", True)]
+    elif state == "inactive":
+        assignments = [a for a in assignments if not a.get("isActive", True)]
+
+    return render(request, "workouts/user_routine_history.html", {
+        "target_user": target_user,
+        "assignments": assignments,
+        "state": state,
+    })
 
 
 

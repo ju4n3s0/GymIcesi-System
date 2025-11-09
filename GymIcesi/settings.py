@@ -32,15 +32,13 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Application definition
 
-INSTALLED_APPS = [
-    "GymIcesi",                    
+INSTALLED_APPS = [                  
     "django.contrib.contenttypes",
     "django.contrib.auth",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.admin", 
-    'django.contrib.contenttypes',
     "GymIcesi.apps.ProyectoConfig",
 ]
 

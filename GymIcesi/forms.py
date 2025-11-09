@@ -86,12 +86,19 @@ class RoutineForm(forms.Form):
     def __init__(self, *args, **kwargs):
         from . import mongo_utils  # import aquí para evitar ciclos
         super().__init__(*args, **kwargs)
+
         db = mongo_utils.get_db()
-        exercise_docs = db.exercises.find().sort("name", 1)
-        self.fields["exercises"].choices = [
-            (str(e["_id"]), f'{e["name"]} ({e["type"]})')
-            for e in exercise_docs
-        ]
+        # Trae solo lo necesario
+        cursor = db.exercises.find({}, {"name": 1, "type": 1}).sort("name", 1)
+
+        choices = []
+        for e in cursor:
+            _id = str(e.get("_id"))
+            name = e.get("name") or f"Ejercicio {_id[:6]}"
+            etype = e.get("type") or e.get("category") or "N/A"
+            choices.append((_id, f"{name} ({etype})"))
+
+        self.fields["exercises"].choices = choices
 
 #Auth
 

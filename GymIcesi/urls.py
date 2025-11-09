@@ -32,7 +32,6 @@ from GymIcesi.forms import InstitutionalAuthenticationForm
 
 from .views import assignment_show, assignment_quick
 urlpatterns = [
-
     path("", RedirectView.as_view(pattern_name="accounts_login", permanent=False)),
 
     path("admin/", admin.site.urls),
@@ -53,9 +52,12 @@ urlpatterns = [
 
 
     path("workouts/assign/", views.routine_assign, name="routine_assign"),
-    path("admin/assignments/", views.assignment_list, name="assignment_list"),
+    
     path('assigment/', assignment_show, name="assignment_show"),
-    path('assigment/quick-assign/', assignment_quick, name = "assignment_quick")
+    path('assigment/quick-assign/', assignment_quick, name = "assignment_quick"),
+    
+    path("workouts/users/", views.routine_users, name="routine_users"),
+    path("workouts/users/<str:user_pk>/routines/",views.user_routine_history,name="user_routine_history")
 ]
 
 if settings.DEBUG:

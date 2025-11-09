@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rutinas de @{{ target_user.username }}</title>
+
+   <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <script defer src="{% static 'js/auth.js' %}"></script>
+</head>
+<body class="auth-body">
+  <header class="auth-header">
+    <div class="auth-header__inner">
+      <nav class="auth-nav">
+        <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+        <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <section class="card card--pad-xl">
+      <div class="card__header">
+        <h1 class="title">Rutinas de @{{ target_user.username }}</h1>
+        <p class="subtitle">Rol: {{ target_user.role }}</p>
+      </div>
+
+      <div class="toolbar">
+        <div class="toolbar__left">
+          <a class="btn btn--ghost" href="{% url 'routine_users' %}">« Volver a usuarios</a>
+          <a class="btn btn--primary" href="{% url 'routine_assign' %}?user={{ target_user.pk }}">
+            Asignar nueva rutina
+          </a>
+        </div>
+        <div class="toolbar__right btn-group">
+          <a class="btn {% if state == '' %}btn--primary{% else %}btn--ghost{% endif %}" href="?">Todas</a>
+          <a class="btn {% if state == 'active' %}btn--primary{% else %}btn--ghost{% endif %}" href="?state=active">Activas</a>
+          <a class="btn {% if state == 'inactive' %}btn--primary{% else %}btn--ghost{% endif %}" href="?state=inactive">Inactivas</a>
+        </div>
+      </div>
+
+      <p class="muted" style="margin:.5rem 0">
+        Resultados: <strong>{{ assignments|length }}</strong>
+      </p>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Rutina</th>
+              <th>Inicio</th>
+              <th>Asignado por</th>
+              <th>Notas</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in assignments %}
+              <tr>
+                <td>
+                  <strong>{{ a.routineName }}</strong><br>
+                  <span class="muted">ID: {{ a.routineId }}</span>
+                </td>
+                <td>
+                  {# Si startDate es date/datetime: #}
+                  {{ a.startDate|date:"Y-m-d" }}
+                  {# Si es string ISO, usa: {{ a.startDate }} #}
+                </td>
+                <td>
+                  {{ a.assignedByUsername }}<br>
+                  <span class="muted">#{{ a.assignedByUserId }}</span>
+                </td>
+                <td>{{ a.notes|default:"—" }}</td>
+                <td>
+                  {% if a.isActive %}
+                    <span class="pill pill--success">Activa</span>
+                  {% else %}
+                    <span class="pill">Inactiva</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="muted">
+                  Este usuario no tiene rutinas asignadas.
+                  <a class="btn btn--primary btn--xs" href="{% url 'routine_assign' %}?user={{ target_user.pk }}">Asignar ahora</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

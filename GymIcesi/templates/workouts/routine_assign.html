@@ -1,42 +1,137 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Asignar rutina a usuario</title>
+  <meta charset="UTF-8" />
+  <title>Asignar rutina a usuario</title>
+
+   <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <script defer src="{% static 'js/auth.js' %}"></script>
 </head>
-<body>
-<h1>Asignar rutina a usuario</h1>
-
-<p>
-    Selecciona la rutina (Mongo) y el usuario objetivo (SQL). Solo los entrenadores pueden crear asignaciones.
-</p>
-
-<form method="post">
-    {% csrf_token %}
-    <div>
-        <label for="{{ form.user.id_for_label }}">Usuario objetivo</label><br/>
-        {{ form.user }}
+<body class="auth-body">
+  <header class="auth-header">
+    <div class="auth-header__inner">
+  
+      <nav class="auth-nav">
+        <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+        <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+      </nav>
     </div>
-    <hr/>
-    <div>
-        <strong>Rutinas</strong><br/>
-        {{ form.routine }}
-    </div>
-    <div>
-        <label for="{{ form.start_date.id_for_label }}">Fecha de inicio</label><br/>
-        {{ form.start_date }}
-    </div>
-    <div>
-        <label for="{{ form.notes.id_for_label }}">Notas</label><br/>
-        {{ form.notes }}
-    </div>
+  </header>
 
-    <button type="submit">Asignar rutina</button>
-</form>
+  <main class="auth-main">
+    <section class="card card--pad-xl">
+      <div class="card__header">
+        <h1 class="title">Asignar rutina a usuario</h1>
+        <p class="subtitle">
+          Selecciona la rutina (Mongo) y el usuario objetivo (SQL). Solo entrenadores o administradores pueden crear asignaciones.
+        </p>
+      </div>
 
-<p style="margin-top: 1rem;">
-    <a href="{% url 'assignment_list' %}">Ver asignaciones</a> |
-    <a href="{% url 'routine_list' %}">Volver a mis rutinas</a>
-</p>
+      {# Mensajes de Django #}
+      {% if messages %}
+        <div class="messages" role="status" aria-live="polite">
+          {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert--success{% elif message.tags == 'warning' %}alert--warning{% else %}alert--danger{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {# Errores no asociados a campos #}
+      {% if form.non_field_errors %}
+        <div class="messages" role="alert">
+          <div class="alert alert--danger">
+            {% for e in form.non_field_errors %}{{ e }}<br>{% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {# Hint si viene usuario preseleccionado por ?user=... #}
+      {% if form.user.value %}
+        <div class="messages">
+          <div class="alert">
+            Usuario preseleccionado: <strong>{{ form.user.value }}</strong>
+            {# Si quieres mostrar el username en vez del PK, puedes renderizar
+               el form.user como <select> (ya lo hace) o resolver en la vista. #}
+          </div>
+        </div>
+      {% endif %}
+
+      <form method="post" class="form" novalidate>
+        {% csrf_token %}
+
+        <div class="form__row">
+          <label class="label" for="{{ form.user.id_for_label }}">Usuario objetivo</label>
+          <div class="control">
+            {{ form.user }}
+          </div>
+          {% if form.user.help_text %}<div class="help">{{ form.user.help_text }}</div>{% endif %}
+          {% if form.user.errors %}
+            <div class="error-list" role="alert">{% for e in form.user.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form__row">
+          <span class="label">Rutinas</span>
+          <div class="control">
+            {{ form.routine }}
+          </div>
+          {% comment %}
+            Si tu AssignRoutineForm usa RadioSelect (como dejamos),
+            aquí se renderizan radios. Si algún día lo cambias a <select>,
+            no hace falta tocar el HTML.
+          {% endcomment %}
+
+          {# Estado vacío si no hay rutinas disponibles en Mongo #}
+          {% if form.routine.field.choices|length == 0 %}
+            <div class="help">
+              No hay rutinas disponibles para asignar.
+              <a href="{% url 'routine_create' %}">Crea una rutina</a> y vuelve aquí.
+            </div>
+          {% endif %}
+
+          {% if form.routine.help_text %}<div class="help">{{ form.routine.help_text }}</div>{% endif %}
+          {% if form.routine.errors %}
+            <div class="error-list" role="alert">{% for e in form.routine.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <div class="form__grid">
+          <div class="form__row">
+            <label class="label" for="{{ form.start_date.id_for_label }}">Fecha de inicio</label>
+            <div class="control">
+              {{ form.start_date }}
+            </div>
+            {% if form.start_date.help_text %}<div class="help">{{ form.start_date.help_text }}</div>{% endif %}
+            {% if form.start_date.errors %}
+              <div class="error-list" role="alert">{% for e in form.start_date.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+            {% endif %}
+          </div>
+
+          <div class="form__row">
+            <label class="label" for="{{ form.notes.id_for_label }}">Notas</label>
+            <div class="control">
+              {# Si quieres evitar autocompletado ruidoso #}
+              {{ form.notes|add_class:"input" }}
+            </div>
+            {% if form.notes.help_text %}{% comment %}Puedes añadir autocomplete="off" con un widget si lo prefieres{% endcomment %}{% endif %}
+            {% if form.notes.errors %}
+              <div class="error-list" role="alert">{% for e in form.notes.errors %}<div class="error">{{ e }}</div>{% endfor %}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn btn--primary">Asignar rutina</button>
+          <a class="btn btn--ghost" href="{% url 'routine_users' %}">Ver usuarios y rutinas</a>
+          <a class="btn btn--ghost" href="{% url 'routine_list' %}">Volver a mis rutinas</a>
+        </div>
+      </form>
+    </section>
+  </main>
 </body>
 </html>

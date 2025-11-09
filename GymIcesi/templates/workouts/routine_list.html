@@ -1,57 +1,107 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Mis rutinas de ejercicio</title>
+  <meta charset="UTF-8">
+  <title>Mis rutinas de ejercicio</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+  <script defer src="{% static 'js/auth.js' %}"></script>
 </head>
-<body>
-<h1>Mis rutinas de ejercicio</h1>
+<body class="auth-body">
+  <header class="auth-header">
+    <div class="auth-header__inner">
 
-<p>
-    Aquí se muestran las rutinas que has registrado en el sistema.
-    Cada rutina está compuesta por uno o varios ejercicios (cardio, fuerza o movilidad),
-    con su duración, dificultad y enlaces a videos demostrativos.
-</p>
+      <nav class="auth-nav">
+        <a class="btn btn--primary" href="{% url 'routine_list' %}">Mis rutinas</a>
+        <a class="btn btn--ghost" href="{% url 'exercise_list' %}">Ejercicios</a>
+        <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+        <a class="btn btn--ghost" href="{% url 'routine_create' %}">Crear rutina</a>
+      </nav>
+    </div>
+  </header>
 
-<p>
-    <a href="{% url 'routine_create' %}">Crear nueva rutina</a> |
-    <a href="{% url 'exercise_list' %}">Gestionar ejercicios</a>
-</p>
+  <main class="auth-main">
+    <section class="card card--pad-xl">
+      <div class="card__header">
+        <h1 class="title">Mis rutinas de ejercicio</h1>
+        <p class="subtitle">
+          Aquí se muestran las rutinas que has registrado en el sistema. Cada rutina está compuesta por uno o varios ejercicios
+          (cardio, fuerza o movilidad), con su duración, dificultad y enlaces a videos demostrativos.
+        </p>
+      </div>
 
-<hr>
-<a href="{% url 'routine_assign' %}">Asignar rutina a un usuario</a>
+      <div class="actions" style="margin-bottom:.75rem;">
+        <a class="btn btn--primary" href="{% url 'routine_create' %}">Crear nueva rutina</a>
+        <a class="btn btn--ghost" href="{% url 'exercise_list' %}">Gestionar ejercicios</a>
+      </div>
 
-{% if routines %}
-    {% for rut in routines %}
-        <section style="margin-bottom: 1.5rem;">
-            <h2>{{ rut.name }}</h2>
-            {% if rut.description %}
-                <p>{{ rut.description }}</p>
-            {% endif %}
-            <p>
-                <strong>Usuario:</strong> {{ rut.userId }}<br>
-                <strong>Creada el:</strong> {{ rut.createdAt }}
-            </p>
+      {% if routines %}
+        <div class="grid grid--cards">
+          {% for rut in routines %}
+            <article class="card card--sub card--pad-lg">
+              <header style="margin-bottom:.5rem;">
+                <h2 class="title title--sm">{{ rut.name }}</h2>
+                {% if rut.description %}
+                  <p class="muted">{{ rut.description }}</p>
+                {% endif %}
+              </header>
 
-            <h3>Ejercicios de la rutina</h3>
-            <ul>
-                {% for item in rut.items %}
-                    <li>
-                        <strong>{{ item.exerciseName }}</strong>
-                        ({{ item.type }}, {{ item.duration }} min,
-                        dificultad {{ item.difficulty }})
-                        {% if item.video_url %}
-                            – <a href="{{ item.video_url }}" target="_blank">Ver video</a>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-        </section>
-        <hr>
-    {% endfor %}
-{% else %}
-    <p>Todavía no has registrado ninguna rutina de ejercicio.</p>
-{% endif %}
+              <p class="muted" style="margin:.25rem 0 .75rem 0;">
+                <strong>Usuario:</strong> {{ rut.userId }} &middot;
+                <strong>Creada el:</strong>
+                {# Si createdAt es datetime: #}
+                {{ rut.createdAt|date:"Y-m-d H:i" }}
+                {# Si es string ISO, usa simplemente: {{ rut.createdAt }} #}
+              </p>
 
+              <h3 class="title title--xs" style="margin-top:.5rem;">Ejercicios de la rutina</h3>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Ejercicio</th>
+                      <th>Tipo</th>
+                      <th>Duración (min)</th>
+                      <th>Dificultad</th>
+                      <th>Video</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in rut.items %}
+                      <tr>
+                        <td><strong>{{ item.exerciseName }}</strong></td>
+                        <td>{{ item.type|capfirst }}</td>
+                        <td>{{ item.duration }}</td>
+                        <td>{{ item.difficulty|capfirst }}</td>
+                        <td>
+                          {% if item.video_url %}
+                            <a class="btn btn--ghost btn--xs" href="{{ item.video_url }}" target="_blank" rel="noopener">Ver</a>
+                          {% else %}
+                            <span class="muted">No disponible</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% empty %}
+                      <tr>
+                        <td colspan="5" class="muted">Esta rutina aún no tiene ejercicios.</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card card--sub card--pad-lg">
+          <p class="muted">Todavía no has registrado ninguna rutina de ejercicio.</p>
+          <div class="actions">
+            <a class="btn btn--primary" href="{% url 'routine_create' %}">Crear mi primera rutina</a>
+            <a class="btn btn--ghost" href="{% url 'exercise_list' %}">Ver catálogo de ejercicios</a>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+  </main>
 </body>
 </html>
