@@ -90,3 +90,42 @@ class RoutineForm(forms.Form):
             (str(e["_id"]), f'{e["name"]} ({e["type"]})')
             for e in exercise_docs
         ]
+        
+        
+class AssignRoutineForm(forms.Form):
+    """
+    Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
+    """
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Usuario objetivo"
+    )
+    routine = forms.ChoiceField(
+        label="Rutina",
+        choices=(),  # se llena en __init__ desde Mongo
+        widget=forms.RadioSelect
+    )
+    start_date = forms.DateField(
+        label="Fecha de inicio",
+        widget=forms.DateInput(attrs={"type": "date"})
+    )
+    notes = forms.CharField(
+        label="Notas",
+        widget=forms.Textarea,
+        required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        from . import mongo_utils  # evita ciclos
+        super().__init__(*args, **kwargs)
+        # Usuarios activos del SQL
+        self.fields["user"].queryset = User.objects.filter(is_active=True)
+
+        # Rutinas (Mongo)
+        db = mongo_utils.get_db()
+        routines = db.routines.find({"is_active": {"$ne": False}}).sort("name", 1)
+        self.fields["routine"].choices = [
+            (str(r["_id"]), r.get("name", "(sin nombre)"))
+            for r in routines
+        ]
+

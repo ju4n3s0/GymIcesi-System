@@ -35,6 +35,8 @@ urlpatterns = [
     # Rutinas
     path("workouts/routines/", views.routine_list, name="routine_list"),
     path("workouts/routines/new/", views.routine_create, name="routine_create"),
+    path("workouts/assign/", views.routine_assign, name="routine_assign"),
+    path("admin/assignments/", views.assignment_list, name="assignment_list"),
 ]
 
 if settings.DEBUG:
