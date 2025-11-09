@@ -48,8 +48,10 @@ def upsert_active_assignment(*, user_id:str, trainer_id:str, since=None, until=N
     now = dt.datetime.utcnow()
 
     # 1) inactivar previas
-    col.update_many({"userId": user_id, "status": "active"},
-                    {"$set": {"status": "inactive", "until": until or now, "updatedAt": now}})
+    col.update_many(
+        {"userId": user_id, "status": "active"},
+        {"$set": {"status": "ended", "until": until or now, "updatedAt": now}}
+    )
 
     # 2) insertar nueva activa
     doc = {
