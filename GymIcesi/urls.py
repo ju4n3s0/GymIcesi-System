@@ -14,9 +14,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+import os
 from django.contrib import admin
 from django.urls import path
 from . import views 
+from django.conf import settings
+from django.conf.urls.static import static
+from django.shortcuts import redirect
+
+from .views import login_user
 
 from django.urls import include
 from django.contrib.auth import views as auth_views
@@ -34,6 +40,9 @@ urlpatterns = [
     path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html", authentication_form=InstitutionalAuthenticationForm,), name="accounts_login",),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="accounts_logout"),
 
+    path('', lambda request: redirect('login', permanent=False)),
+    path('login/', login_user, name='login'),
+    path('admin/', admin.site.urls),
      # Ejercicios
     path("workouts/exercises/", views.exercise_list, name="exercise_list"),
 
@@ -43,4 +52,10 @@ urlpatterns = [
 
 
 
+    path("workouts/assign/", views.routine_assign, name="routine_assign"),
+    path("admin/assignments/", views.assignment_list, name="assignment_list"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static('/css/', document_root=os.path.join(settings.BASE_DIR, 'GymIcesi/templates'))
+    urlpatterns += static('/html/', document_root=os.path.join(settings.BASE_DIR, 'GymIcesi/templates'))

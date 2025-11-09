@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Asignar rutina a usuario</title>
+</head>
+<body>
+<h1>Asignar rutina a usuario</h1>
+
+<p>
+    Selecciona la rutina (Mongo) y el usuario objetivo (SQL). Solo los entrenadores pueden crear asignaciones.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <div>
+        <label for="{{ form.user.id_for_label }}">Usuario objetivo</label><br/>
+        {{ form.user }}
+    </div>
+    <hr/>
+    <div>
+        <strong>Rutinas</strong><br/>
+        {{ form.routine }}
+    </div>
+    <div>
+        <label for="{{ form.start_date.id_for_label }}">Fecha de inicio</label><br/>
+        {{ form.start_date }}
+    </div>
+    <div>
+        <label for="{{ form.notes.id_for_label }}">Notas</label><br/>
+        {{ form.notes }}
+    </div>
+
+    <button type="submit">Asignar rutina</button>
+</form>
+
+<p style="margin-top: 1rem;">
+    <a href="{% url 'assignment_list' %}">Ver asignaciones</a> |
+    <a href="{% url 'routine_list' %}">Volver a mis rutinas</a>
+</p>
+</body>
+</html>

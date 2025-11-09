@@ -3,23 +3,18 @@
 from django.utils import timezone
 from django.utils.text import slugify
 from bson import ObjectId
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required,user_passes_test
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
-from .forms import ExerciseForm, RoutineForm, TrainerAssignForm
+from django.contrib.auth import authenticate, login
+from .forms import ExerciseForm, RoutineForm, TrainerAssignForm, AssignRoutineForm
 from .models import User, Employee
 from . import mongo_utils
-
 
 def staff_required(u):
     return u.is_authenticated and (u.is_staff or u.is_superuser)
 
-
-@login_required
-def assaigment_list(request):
-    # De momento solo renderiza el template de asignaciones
-    return render(request, "admin/assignment_list.html")
 
 
 # ---------- CATÁLOGO DE EJERCICIOS ----------
@@ -157,3 +152,162 @@ def routine_create(request):
         "form": form,
     }
     return render(request, "workouts/routine_create.html", context)
+
+
+def login_user(request):
+    if request.method == "POST":
+        username = request.POST.get('username')  
+        password = request.POST.get('password')
+        print("DEBUG: Intentando autenticar al usuario:", username)
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            user.refresh_from_db()
+
+            if user.is_superuser:
+                print("DEBUG: El usuario es superusuario.")
+                messages.error(request, "El superusuario solo puede acceder al admin.")
+                return redirect('login')
+
+            print("DEBUG: Login exitoso.")
+            login(request, user)
+            return redirect('carreerFilter')
+
+        else:
+            print("DEBUG: Falló la autenticación para el usuario:", username)
+            messages.error(request, "La contraseña o el usuario son incorrectos.")
+    
+    return render(request, 'registration/login.html')
+
+
+def is_trainer(user):
+    """
+    Un usuario es 'trainer' si está autenticado, tiene vínculo a Employee
+    y su Employee es de tipo 'Instructor'.
+    """
+    if not user.is_authenticated:
+        return False
+    # Si tu User tiene FK 'employee' (managed=False) podemos resolverla:
+    try:
+        if user.employee_id is None:
+            return False
+        return Employee.objects.filter(
+            id=user.employee_id,
+            employee_type__name="Instructor"
+        ).exists()
+    except Exception:
+        return False
+    
+ALLOWED_EMPLOYEE_TYPES = {"Instructor", "Administrador", "Admin"}
+ALLOWED_ROLES = {"trainer", "admin"}
+
+def is_trainer_or_admin(user):
+    """
+    Devuelve True si el usuario:
+      1) Tiene role en {'trainer','admin'}, o
+      2) Es superuser/staff de Django, o
+      3) Su Employee tiene tipo en {'Instructor','Administrador','Admin'}.
+    """
+    if not user.is_authenticated:
+        return False
+
+    # (1) Vía rápida por campo role, si existe
+    role = getattr(user, "role", None)
+    if role in ALLOWED_ROLES:
+        return True
+
+    # (2) Flags estándar de Django
+    if user.is_superuser or user.is_staff:
+        return True
+
+    # (3) Revisión por Employee (clave foránea en el user)
+    emp_id = getattr(user, "employee_id", None)
+    if not emp_id:
+        return False
+
+    return Employee.objects.filter(
+        id=emp_id,
+        employee_type__name__in=ALLOWED_EMPLOYEE_TYPES
+    ).exists()
+
+@login_required
+@user_passes_test(is_trainer_or_admin)  
+def routine_assign(request):
+    """
+    Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
+    GUIADA por el patrón de routine_create:
+      - Lee las rutinas desde Mongo (colección 'routines').
+      - Inserta una asignación en Mongo (colección 'user_routines').
+    """
+    db = mongo_utils.get_db()
+    routines_coll = db.routines
+    assignments_coll = db.user_routines  # NUEVA colección
+
+    if request.method == "POST":
+        form = AssignRoutineForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+
+            # 1) Validar rutina Mongo
+            try:
+                routine_oid = ObjectId(data["routine"])
+            except Exception:
+                messages.error(request, "Rutina inválida.")
+                return render(request, "workouts/routine_assign.html", {"form": form})
+
+            routine_doc = routines_coll.find_one({"_id": routine_oid})
+            if not routine_doc:
+                messages.error(request, "No se encontró la rutina seleccionada.")
+                return render(request, "workouts/routine_assign.html", {"form": form})
+
+            # 2) Usuario objetivo (SQL)
+            target_user = data["user"]
+
+            # 3) Regla anti-duplicado por día (opcional, igual que unique_together)
+            start_date = data["start_date"]
+            existing = assignments_coll.find_one({
+                "routineId": routine_oid,
+                "targetUserId": target_user.id,
+                "startDate": start_date.isoformat(),
+            })
+            if existing:
+                messages.warning(
+                    request,
+                    "Ya existe una asignación de esta rutina para ese usuario en la misma fecha."
+                )
+                return redirect("assignment_list")
+
+            # 4) Construir documento (siguiendo tu estilo camelCase y createdAt)
+            doc = {
+                "routineId": routine_oid,
+                "routineName": routine_doc.get("name"),
+                "targetUserId": target_user.id,
+                "targetUsername": target_user.username,
+                # quién asigna:
+                "assignedByUserId": getattr(request.user, "id", None),
+                "assignedByUsername": getattr(request.user, "username", None),
+                "assignedByEmployeeId": getattr(request.user, "employee_id", None),
+                # datos de negocio:
+                "startDate": start_date.isoformat(),
+                "notes": data.get("notes", ""),
+                "isActive": True,
+                # auditoría:
+                "createdAt": timezone.now(),
+            }
+
+            assignments_coll.insert_one(doc)
+            messages.success(request, "Rutina asignada correctamente.")
+            return redirect("assignment_list")
+    else:
+        form = AssignRoutineForm()
+
+    return render(request, "workouts/routine_assign.html", {"form": form})
+
+@login_required
+@user_passes_test(is_trainer_or_admin)
+def assignment_list(request):
+    db = mongo_utils.get_db()
+    assignments = list(db.user_routines.find().sort("createdAt", -1))
+    return render(request, "admin/assignment_list.html", {"assignments": assignments})
+
+
