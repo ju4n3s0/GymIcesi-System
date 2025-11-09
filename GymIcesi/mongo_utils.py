@@ -69,3 +69,37 @@ def inactivate_assignment_by_id(_id):
     col = ensure_indexes()
     now = dt.datetime.utcnow()
     col.update_one({"_id": ObjectId(_id)}, {"$set": {"status": "inactive", "until": now, "updatedAt": now}})
+
+# --- Progreso de usuario (nuevo) ---
+def ensure_progress_indexes():
+    col = get_db()["progress_logs"]
+    col.create_index([("userId", ASCENDING)], name="ix_user")
+    col.create_index([("date", ASCENDING)], name="ix_date")
+    return col
+
+
+def list_progress_logs(user_id: str, limit: int = 100):
+    """
+    Devuelve los registros de progreso de un usuario ordenados por fecha descendente.
+    """
+    col = ensure_progress_indexes()
+    return list(col.find({"userId": user_id}).sort("date", -1).limit(limit))
+
+
+def insert_progress_log(user_id, exercise_id, date, repetitions=None, duration=None, effort=None, notes=None):
+    db = get_db()
+    now = dt.datetime.utcnow()
+    doc = {
+        "userId": user_id,
+        "exerciseId": exercise_id,
+        "date": date,
+        "repetitions": repetitions,
+        "duration": duration,
+        "effort": effort,
+        "notes": notes,
+        "createdAt": now,
+        "updatedAt": now,
+    }
+    res = db.progress_logs.insert_one(doc)
+    return str(res.inserted_id)
+

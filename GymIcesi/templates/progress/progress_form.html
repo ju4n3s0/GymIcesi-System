@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth">
+  <div class="auth__card">
+    <div class="auth__main">
+      <h2 class="auth__title">Registrar Progreso</h2>
+      <p class="auth__desc">Guarda tu avance de entrenamiento</p>
+
+      <form method="post" class="form" data-auth-form>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form__row">
+          <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.errors %}
+          <div class="alert alert--error">{{ field.errors }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="actions">
+          <button type="submit" class="btn">Guardar Progreso</button>
+          <a href="{% url 'progress_list' %}" class="btn btn--ghost">Volver</a>
+        </div>
+      </form>
+
+      <p class="meta">Recuerda registrar tus avances cada semana 💪</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

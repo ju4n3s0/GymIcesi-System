@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<section class="auth">
+  <div class="auth__card">
+    <div class="auth__main">
+      <h2 class="auth__title">Registrar Progreso</h2>
+      <p class="auth__desc">Guarda tu avance de entrenamiento</p>
+
+      <form method="post" class="form" data-auth-form>
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="form__row">
+          <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}
+          <small class="helper" style="display:block; margin-top:6px;">{{ field.help_text }}</small>
+          {% endif %}
+          {% if field.errors %}
+          <div class="alert alert--error" style="margin-top:8px;">{{ field.errors }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="actions">
+          <button type="submit" class="btn">Guardar Progreso</button>
+          <a href="{% url 'progress_list' %}" class="btn btn--ghost">Volver</a>
+        </div>
+      </form>
+
+      <p class="meta" style="margin-top:14px;">
+        <a href="{% url 'progress_list' %}" class="helper">Ver historial de progreso</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- CSS específico (si tu base.html no lo incluye globalmente) -->
+<link rel="stylesheet" href="{% static 'css/progress.css' %}">
+
+<!-- JS sencillo para mejorar la UX al enviar el formulario -->
+<script src="{% static 'js/progress_form.js' %}"></script>
+{% endblock %}

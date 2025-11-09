@@ -11,6 +11,9 @@ from django.contrib.auth import authenticate, login
 from .forms import ExerciseForm, RoutineForm, TrainerAssignForm, AssignRoutineForm
 from .models import User, Employee
 from . import mongo_utils
+from .forms import ProgressLogForm
+import datetime as dt
+
 
 def staff_required(u):
     return u.is_authenticated and (u.is_staff or u.is_superuser)
@@ -310,4 +313,43 @@ def assignment_list(request):
     assignments = list(db.user_routines.find().sort("createdAt", -1))
     return render(request, "admin/assignment_list.html", {"assignments": assignments})
 
+# ---------- REGISTRAR PROGRESO DEL USUARIO ----------
+
+@login_required
+def progress_list(request):
+    user_id = request.user.username  # en tu esquema relacional
+    logs = mongo_utils.list_progress_logs(user_id)
+
+    # Resolver nombres de ejercicios
+    db = mongo_utils.get_db()
+    exercises = {str(e["_id"]): e["name"] for e in db.exercises.find({}, {"_id": 1, "name": 1})}
+
+    for log in logs:
+        log["exercise_name"] = exercises.get(str(log["exerciseId"]), "Desconocido")
+
+    context = {"records": logs}
+    return render(request, "progres/progress_list.html", context)
+
+
+@login_required
+def progress_create(request):
+    if request.method == "POST":
+        form = ProgressLogForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            mongo_utils.insert_progress_log(
+                user_id=request.user.username,
+                exercise_id=cd["exercise"],
+                date=cd["date"],
+                repetitions=cd.get("repetitions"),
+                duration=cd.get("duration"),
+                effort=cd.get("effort"),
+                notes=cd.get("notes"),
+            )
+            messages.success(request, "Progreso registrado correctamente ✅")
+            return redirect("progress_list")
+    else:
+        form = ProgressLogForm()
+
+    return render(request, "progress/progress_form.html", {"form": form})
 

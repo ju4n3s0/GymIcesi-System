@@ -93,7 +93,7 @@ DATABASES = {
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://myAtlasDBUser:16890145@gymicesicluster.w8h8o4l.mongodb.net/")
 MONGO_DBNAME = os.getenv("MONGO_DBNAME", "gymicesidb")
-MONGO_TIMEOUT_MS = 1200
+MONGO_TIMEOUT_MS = 5000  
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

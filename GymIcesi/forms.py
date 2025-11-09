@@ -2,6 +2,10 @@
 from django import forms
 from .models import User, Employee
 from django.contrib.auth import authenticate
+from GymIcesi.mongo_utils import get_db
+from .mongo_utils import get_db
+import datetime as dt
+
 
 EXERCISE_TYPE_CHOICES = [
     ("cardio", "Cardio"),
@@ -168,3 +172,74 @@ class AssignRoutineForm(forms.Form):
             for r in routines
         ]
 
+# --- Seguimiento de progreso ---
+
+EFFORT_CHOICES = [
+    ("bajo", "Bajo"),
+    ("medio", "Medio"),
+    ("alto", "Alto"),
+]
+
+EFFORT_CHOICES = [
+    ("bajo", "Bajo"),
+    ("medio", "Medio"),
+    ("alto", "Alto"),
+]
+
+class ProgressLogForm(forms.Form):
+    date = forms.DateField(
+        label="Fecha",
+        widget=forms.DateInput(attrs={"type": "date"})
+    )
+    exercise = forms.ChoiceField(label="Ejercicio")
+    repetitions = forms.IntegerField(
+        label="Repeticiones", required=False, min_value=1
+    )
+    duration = forms.IntegerField(
+        label="Duración (minutos)", required=False, min_value=1
+    )
+    effort = forms.ChoiceField(label="Nivel de esfuerzo", choices=EFFORT_CHOICES)
+    notes = forms.CharField(
+        label="Notas (opcional)",
+        widget=forms.Textarea(attrs={"rows": 2}),
+        required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        db = get_db()
+        exercise_docs = db.exercises.find().sort("name", 1)
+        # ✅ Solución: usar .get() para evitar KeyError si falta "type" o "name"
+        self.fields["exercise"].choices = [
+            (str(e["_id"]), f'{e.get("name", "Sin nombre")} ({e.get("type", "Sin tipo")})')
+            for e in exercise_docs
+        ]
+
+    # ✅ Mueve estas funciones fuera del __init__ y agrégales @staticmethod
+    @staticmethod
+    def list_progress_logs(user_id: str, limit: int = 100):
+        db = get_db()
+        logs = list(
+            db.progress_logs.find({"userId": user_id})
+            .sort("date", -1)
+            .limit(limit)
+        )
+        return logs
+
+    @staticmethod
+    def insert_progress_log(user_id: str, exercise_id: str, date, repetitions=None, duration=None, effort=None, notes=None):
+        db = get_db()
+        now = dt.datetime.utcnow()
+        doc = {
+            "userId": user_id,
+            "exerciseId": exercise_id,
+            "date": date,
+            "repetitions": repetitions,
+            "duration": duration,
+            "effort": effort,
+            "notes": notes,
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        res = db.progress_logs.insert_one(doc)
+        return str(res.inserted_id)
