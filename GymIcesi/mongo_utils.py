@@ -2,6 +2,9 @@
 from pymongo import MongoClient, ASCENDING
 from django.conf import settings
 import datetime as dt
+from bson import ObjectId
+
+
 
 _client = None
 
@@ -86,20 +89,37 @@ def list_progress_logs(user_id: str, limit: int = 100):
     return list(col.find({"userId": user_id}).sort("date", -1).limit(limit))
 
 
-def insert_progress_log(user_id, exercise_id, date, repetitions=None, duration=None, effort=None, notes=None):
+def insert_progress_log(user_id, exercise_id, date, reps=None, weight=None):
     db = get_db()
-    now = dt.datetime.utcnow()
+    exercise_oid = ObjectId(exercise_id)
+
+    # ✅ obtener nombre real del ejercicio
+    exercise_name = db.exercises.find_one({"_id": exercise_oid}).get("name", "Desconocido")
+
     doc = {
         "userId": user_id,
-        "exerciseId": exercise_id,
         "date": date,
-        "repetitions": repetitions,
-        "duration": duration,
-        "effort": effort,
-        "notes": notes,
-        "createdAt": now,
-        "updatedAt": now,
+        "entries": [
+            {
+                "exerciseId": exercise_oid,  # ✅ guardamos como ObjectId real
+                "exerciseName": exercise_name,  # ✅ requerido por el schema
+                "sets": [
+                    {
+                        "reps": reps,
+                        "weight": weight
+                    }
+                ]
+            }
+        ]
     }
-    res = db.progress_logs.insert_one(doc)
-    return str(res.inserted_id)
+
+    return db.progress_logs.insert_one(doc)
+
+def get_exercise_name_by_id(exercise_id):
+    db = get_db()
+    exercise = db.exercises.find_one({"_id": ObjectId(exercise_id)})
+    return exercise.get("name", "Desconocido") if exercise else "Desconocido"
+
+
+
 

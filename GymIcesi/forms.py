@@ -5,6 +5,8 @@ from django.contrib.auth import authenticate
 from GymIcesi.mongo_utils import get_db
 from .mongo_utils import get_db
 import datetime as dt
+import datetime as dt
+from bson.objectid import ObjectId
 
 
 EXERCISE_TYPE_CHOICES = [
@@ -192,26 +194,15 @@ class ProgressLogForm(forms.Form):
         widget=forms.DateInput(attrs={"type": "date"})
     )
     exercise = forms.ChoiceField(label="Ejercicio")
-    repetitions = forms.IntegerField(
-        label="Repeticiones", required=False, min_value=1
-    )
-    duration = forms.IntegerField(
-        label="Duración (minutos)", required=False, min_value=1
-    )
-    effort = forms.ChoiceField(label="Nivel de esfuerzo", choices=EFFORT_CHOICES)
-    notes = forms.CharField(
-        label="Notas (opcional)",
-        widget=forms.Textarea(attrs={"rows": 2}),
-        required=False,
-    )
+    reps = forms.IntegerField(label="Repeticiones", min_value=1)
+    weight = forms.FloatField(label="Peso (kg)", min_value=0)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         db = get_db()
         exercise_docs = db.exercises.find().sort("name", 1)
-        # ✅ Solución: usar .get() para evitar KeyError si falta "type" o "name"
         self.fields["exercise"].choices = [
-            (str(e["_id"]), f'{e.get("name", "Sin nombre")} ({e.get("type", "Sin tipo")})')
+            (str(e["_id"]), e.get("name", "Sin nombre"))
             for e in exercise_docs
         ]
 
@@ -227,19 +218,24 @@ class ProgressLogForm(forms.Form):
         return logs
 
     @staticmethod
-    def insert_progress_log(user_id: str, exercise_id: str, date, repetitions=None, duration=None, effort=None, notes=None):
+    def insert_progress_log(user_id: str, exercise_id: str, date, reps: int, weight: float):
         db = get_db()
         now = dt.datetime.utcnow()
+
         doc = {
             "userId": user_id,
-            "exerciseId": exercise_id,
             "date": date,
-            "repetitions": repetitions,
-            "duration": duration,
-            "effort": effort,
-            "notes": notes,
+            "entries": [
+                {
+                    "exerciseId": ObjectId(exercise_id),
+                    "sets": [
+                        {"reps": reps, "weight": weight}
+                    ]
+                }
+            ],
             "createdAt": now,
             "updatedAt": now,
         }
+
         res = db.progress_logs.insert_one(doc)
         return str(res.inserted_id)

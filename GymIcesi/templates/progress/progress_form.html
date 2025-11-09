@@ -1,12 +1,13 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <section class="auth">
+  <br><br><br>
   <div class="auth__card">
     <div class="auth__main">
       <h2 class="auth__title">Registrar Progreso</h2>
-      <p class="auth__desc">Guarda tu avance de entrenamiento</p>
 
-      <form method="post" class="form" data-auth-form>
+      <form method="post" class="form">
         {% csrf_token %}
         {% for field in form %}
         <div class="form__row">
@@ -19,12 +20,10 @@
         {% endfor %}
 
         <div class="actions">
-          <button type="submit" class="btn">Guardar Progreso</button>
+          <button type="submit" class="btn">Guardar</button>
           <a href="{% url 'progress_list' %}" class="btn btn--ghost">Volver</a>
         </div>
       </form>
-
-      <p class="meta">Recuerda registrar tus avances cada semana 💪</p>
     </div>
   </div>
 </section>

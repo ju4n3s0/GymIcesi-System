@@ -315,20 +315,34 @@ def assignment_list(request):
 
 # ---------- REGISTRAR PROGRESO DEL USUARIO ----------
 
+
+
 @login_required
 def progress_list(request):
-    user_id = request.user.username  # en tu esquema relacional
-    logs = mongo_utils.list_progress_logs(user_id)
-
-    # Resolver nombres de ejercicios
-    db = mongo_utils.get_db()
-    exercises = {str(e["_id"]): e["name"] for e in db.exercises.find({}, {"_id": 1, "name": 1})}
+    logs = mongo_utils.list_progress_logs(request.user.username)
+    records = []
 
     for log in logs:
-        log["exercise_name"] = exercises.get(str(log["exerciseId"]), "Desconocido")
+        date = log.get("date")
 
-    context = {"records": logs}
-    return render(request, "progres/progress_list.html", context)
+        for entry in log.get("entries", []):
+            exercise_id = entry.get("exerciseId")
+            first_set = entry.get("sets", [{}])[0]
+
+            exercise_name = (
+                mongo_utils.get_exercise_name_by_id(ObjectId(exercise_id))
+                if exercise_id else "Desconocido"
+            )
+
+            records.append({
+                "date": date,
+                "exercise_name": exercise_name,
+                "repetitions": first_set.get("reps", "-"),
+                "weight": first_set.get("weight", "-"),
+            })
+
+    return render(request, "progress/progress_list.html", {"records": records})
+
 
 
 @login_required
@@ -337,19 +351,26 @@ def progress_create(request):
         form = ProgressLogForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
+
+            date = cd["date"]
+            if hasattr(date, "year") and not hasattr(date, "hour"):
+                import datetime
+                date = datetime.datetime.combine(date, datetime.datetime.min.time())
+
             mongo_utils.insert_progress_log(
                 user_id=request.user.username,
-                exercise_id=cd["exercise"],
-                date=cd["date"],
-                repetitions=cd.get("repetitions"),
-                duration=cd.get("duration"),
-                effort=cd.get("effort"),
-                notes=cd.get("notes"),
+                exercise_id=str(cd["exercise"]),  # ✅ enviamos correctamente el ID
+                date=date,
+                reps=cd.get("reps"),
+                weight=cd.get("weight"),
             )
+
             messages.success(request, "Progreso registrado correctamente ✅")
             return redirect("progress_list")
+
+        messages.error(request, "Por favor completa correctamente todos los campos ❌")
+
     else:
         form = ProgressLogForm()
 
     return render(request, "progress/progress_form.html", {"form": form})
-
