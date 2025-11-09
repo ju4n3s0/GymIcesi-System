@@ -30,6 +30,7 @@ from .views import exercise_list, routine_list, routine_create
 from django.views.generic import RedirectView
 from GymIcesi.forms import InstitutionalAuthenticationForm
 
+from .views import assignment_show, assignment_quick
 urlpatterns = [
 
     path("", RedirectView.as_view(pattern_name="accounts_login", permanent=False)),
@@ -40,8 +41,7 @@ urlpatterns = [
     path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html", authentication_form=InstitutionalAuthenticationForm,), name="accounts_login",),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="accounts_logout"),
 
-    path('', lambda request: redirect('login', permanent=False)),
-    path('login/', login_user, name='login'),
+    path('', lambda request: redirect('accounts/login', permanent=False)),
     path('admin/', admin.site.urls),
      # Ejercicios
     path("workouts/exercises/", views.exercise_list, name="exercise_list"),
@@ -54,8 +54,11 @@ urlpatterns = [
 
     path("workouts/assign/", views.routine_assign, name="routine_assign"),
     path("admin/assignments/", views.assignment_list, name="assignment_list"),
+    path('assigment/', assignment_show, name="assignment_show"),
+    path('assigment/quick-assign/', assignment_quick, name = "assignment_quick")
 ]
 
 if settings.DEBUG:
     urlpatterns += static('/css/', document_root=os.path.join(settings.BASE_DIR, 'GymIcesi/templates'))
     urlpatterns += static('/html/', document_root=os.path.join(settings.BASE_DIR, 'GymIcesi/templates'))
+

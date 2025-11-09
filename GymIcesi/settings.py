@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-nc9l7i3avp679w=xu7id_gx+8y0!-mkdvjbx1et1retivva$w!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 
 
@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.admin", 
+    'django.contrib.contenttypes',
+    "GymIcesi.apps.ProyectoConfig",
 ]
 
 MIDDLEWARE = [
