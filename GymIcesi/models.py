@@ -1,6 +1,8 @@
 # university/models.py
 from django.db import models
 from django.db.models import Q
+from django.contrib.auth.models import AbstractUser
+from django.db import models as dj_models
 
 
 # --- Tablas catálogo simples ---
@@ -257,9 +259,8 @@ class User(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "users"
         managed = False
-        # Emula tu CHECK (XOR): o student o employee, pero no ambos
+        db_table = "users"
         constraints = [
             models.CheckConstraint(
                 check=(
@@ -272,3 +273,21 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
+
+
+# --- AUTENTICACIÓN DJANGO (modelo gestionado por Django) ---
+
+class AuthUser(AbstractUser):
+    class Role(dj_models.TextChoices):
+        STUDENT = "STUDENT", "Student"
+        EMPLOYEE = "EMPLOYEE", "Employee"
+        ADMIN    = "ADMIN", "Admin"
+
+    role = dj_models.CharField(max_length=20, choices=Role.choices, default=Role.STUDENT)
+    # en tu esquema, los IDs son texto; usa CharField
+    student_id  = dj_models.CharField(max_length=15, null=True, blank=True)
+    employee_id = dj_models.CharField(max_length=15, null=True, blank=True)
+
+    def is_student(self):  return self.role == self.Role.STUDENT
+    def is_employee(self): return self.role == self.Role.EMPLOYEE
+    def is_admin(self):    return self.role == self.Role.ADMIN

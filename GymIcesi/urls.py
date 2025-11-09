@@ -16,15 +16,31 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from . import views 
 
-from GymIcesi import views
+from django.urls import include
+from django.contrib.auth import views as auth_views
+from .views import exercise_list, routine_list, routine_create 
+from django.views.generic import RedirectView
+from GymIcesi.forms import InstitutionalAuthenticationForm
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+
+    path("", RedirectView.as_view(pattern_name="accounts_login", permanent=False)),
+
+    path("admin/", admin.site.urls),
+
+    #Auth
+    path("accounts/login/", auth_views.LoginView.as_view(template_name="accounts/login.html", authentication_form=InstitutionalAuthenticationForm,), name="accounts_login",),
+    path("accounts/logout/", auth_views.LogoutView.as_view(), name="accounts_logout"),
+
      # Ejercicios
     path("workouts/exercises/", views.exercise_list, name="exercise_list"),
 
     # Rutinas
     path("workouts/routines/", views.routine_list, name="routine_list"),
     path("workouts/routines/new/", views.routine_create, name="routine_create"),
+
+
+
 ]
