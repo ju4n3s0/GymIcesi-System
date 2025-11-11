@@ -20,8 +20,22 @@ import datetime as dt
 
 from django.core.paginator import Paginator
 from django.db.models import Q
-    
 
+def admin_role(user):
+    if not user.is_authenticated:
+        return False
+    if getattr(user, "is_superuser", False):
+        return True
+    emp_id = getattr(user, "employee_id", None)
+    if not emp_id:
+        return False
+    return Employee.objects.filter(
+        id = emp_id,
+        employee_type = "Administrativo"
+    ).exists()
+
+@login_required
+@user_passes_test(admin_role)
 def assignment_show(request):
     students = (UniUser.objects
                 .filter(role="STUDENT", is_active=True)
@@ -53,6 +67,8 @@ def assignment_show(request):
         "trainers": trainers,
     })
 
+@login_required
+@user_passes_test(admin_role)
 def assignment_quick(request):
         student_username = (request.POST.get("student_username") or "").strip()
         trainer_username  = (request.POST.get("trainer_username") or "").strip()
@@ -81,8 +97,6 @@ def assignment_quick(request):
         emp_name = f"{emp.first_name} {emp.last_name}" if emp else f"@{tuser.username}"
         messages.success(request, f"@{suser.username} asignado a {emp_name}.")
         return redirect("assignment_show")
-
-
 
 # ---------- CATÁLOGO DE EJERCICIOS ----------
 
