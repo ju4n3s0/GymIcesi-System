@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Estadísticas del gimnasio</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            margin-top: 40px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background: #333;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .no-data {
+            text-align: center;
+            padding: 15px;
+            font-style: italic;
+            color: #666;
+        }
+        a.back-link {
+            display: inline-block;
+            margin-bottom: 15px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <a href="/admin/" class="back-link">&larr; Volver al admin</a>
+
+    <h1>Estadísticas del gimnasio</h1>
+
+    <!-- ===================== USUARIOS ===================== -->
+    <h2>Actividad de usuarios</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Usuario (ID)</th>
+                <th>Año</th>
+                <th>Mes</th>
+                <th>Rutinas iniciadas</th>
+                <th>Seguimientos realizados</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% if user_stats %}
+            {% for s in user_stats %}
+                <tr>
+                    <!-- IMPORTANTE: usamos user_id, NO s.user -->
+                    <td>{{ s.user_id }}</td>
+                    <td>{{ s.year }}</td>
+                    <td>{{ s.month }}</td>
+                    <td>{{ s.routines_started }}</td>
+                    <td>{{ s.followups_count }}</td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="5" class="no-data">No hay datos de usuarios aún.</td>
+            </tr>
+        {% endif %}
+        </tbody>
+    </table>
+
+    <!-- ===================== ENTRENADORES ===================== -->
+    <h2>Actividad de entrenadores</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Entrenador (ID)</th>
+                <th>Año</th>
+                <th>Mes</th>
+                <th>Rutinas creadas</th>
+                <th>Seguimientos realizados</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% if trainer_stats %}
+            {% for s in trainer_stats %}
+                <tr>
+                    <!-- IMPORTANTE: usamos trainer_id, NO s.trainer -->
+                    <td>{{ s.trainer_id }}</td>
+                    <td>{{ s.year }}</td>
+                    <td>{{ s.month }}</td>
+                    <td>{{ s.routines_created }}</td>
+                    <td>{{ s.followups_count }}</td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr>
+                <td colspan="5" class="no-data">No hay datos de entrenadores aún.</td>
+            </tr>
+        {% endif %}
+        </tbody>
+    </table>
+
+</div>
+</body>
+</html>

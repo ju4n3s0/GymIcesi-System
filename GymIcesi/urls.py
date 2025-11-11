@@ -20,11 +20,14 @@ from django.urls import path
 from GymIcesi import views
 
 urlpatterns = [
+    path("estadisticas/", views.stats_dashboard, name="stats_dashboard"),
     path('admin/', admin.site.urls),
+    
      # Ejercicios
     path("workouts/exercises/", views.exercise_list, name="exercise_list"),
 
     # Rutinas
     path("workouts/routines/", views.routine_list, name="routine_list"),
     path("workouts/routines/new/", views.routine_create, name="routine_create"),
+    
 ]
