@@ -1,6 +1,7 @@
 # GymIcesi/forms.py
 from django import forms
 
+from GymIcesi import mongo_utils
 from .models import User, Employee
 from django.contrib.auth import authenticate
 from GymIcesi.mongo_utils import get_db
@@ -76,24 +77,25 @@ class ExerciseForm(forms.Form):
 class RoutineForm(forms.Form):
     name = forms.CharField(
         label="Nombre de la rutina",
-        max_length=100
+        max_length=100,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
     )
     description = forms.CharField(
-        label="Descripción / objetivo",
-        widget=forms.Textarea,
-        required=False
+        label="Descripción",
+        required=False,
+        widget=forms.Textarea(attrs={"class": "form-control", "rows": 3}),
     )
     exercises = forms.MultipleChoiceField(
         label="Ejercicios de la rutina",
+        choices=(),
         widget=forms.CheckboxSelectMultiple,
-        required=True
     )
 
     def __init__(self, *args, **kwargs):
-        from . import mongo_utils  # import aquí para evitar ciclos
         super().__init__(*args, **kwargs)
 
         db = mongo_utils.get_db()
+
         # Trae solo lo necesario
         cursor = db.exercises.find({}, {"name": 1, "type": 1}).sort("name", 1)
 
@@ -106,6 +108,15 @@ class RoutineForm(forms.Form):
 
         self.fields["exercises"].choices = choices
 
+        exercises_cursor = db.exercises.find().sort("name", 1)
+
+        choices = []
+        for e in exercises_cursor:
+            name = e.get("name", "Sin nombre")
+            ex_type = e.get("type", "sin tipo")  # 👈 evita KeyError
+            choices.append((str(e["_id"]), f"{name} ({ex_type})"))
+
+        self.fields["exercises"].choices = choices
 #Auth
 
 class InstitutionalAuthenticationForm(forms.Form):
@@ -261,3 +272,4 @@ class ProgressLogForm(forms.Form):
 
         res = db.progress_logs.insert_one(doc)
         return str(res.inserted_id)
+

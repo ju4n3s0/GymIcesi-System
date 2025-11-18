@@ -3,6 +3,7 @@
 import django.contrib.auth.models
 import django.contrib.auth.validators
 import django.utils.timezone
+import django.db.models.deletion
 from django.db import migrations, models
 
 
@@ -218,5 +219,32 @@ class Migration(migrations.Migration):
             managers=[
                 ('objects', django.contrib.auth.models.UserManager()),
             ],
+            name='TrainerMonthlyStats',
+            fields=[
+                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('year', models.IntegerField()),
+                ('month', models.IntegerField()),
+                ('new_assignments', models.IntegerField(default=0)),
+                ('followups_made', models.IntegerField(default=0)),
+                ('trainer', models.ForeignKey(db_column='trainer_id', on_delete=django.db.models.deletion.CASCADE, to='GymIcesi.employee')),
+            ],
+            options={
+                'db_table': 'trainer_monthly_stats',
+                'unique_together': {('trainer', 'year', 'month')},
+            },
+            name='UserMonthlyStats',
+            fields=[
+                ('id', models.BigAutoField(primary_key=True, serialize=False)),
+                ('year', models.IntegerField()),
+                ('month', models.IntegerField()),
+                ('routines_started', models.IntegerField(default=0)),
+                ('followups_made', models.IntegerField(default=0)),
+                ('user', models.ForeignKey(db_column='username', on_delete=django.db.models.deletion.CASCADE, to='GymIcesi.user')),
+            ],
+            options={
+                'db_table': 'user_monthly_stats',
+                'unique_together': {('user', 'year', 'month')},
+            },
         ),
+       
     ]

@@ -291,4 +291,5 @@ class AuthUser(AbstractUser):
     def is_admin(self):    return self.role == self.Role.ADMIN
     
     
+
     

@@ -1,25 +1,37 @@
 # GymIcesi/views.py
 
+
 import csv
 from django.http import HttpResponse
+
+from datetime import datetime
+
 from django.utils import timezone
 from django.utils.text import slugify
 from bson import ObjectId
 from django.contrib.auth.decorators import login_required,user_passes_test
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib import messages
+from pymongo import MongoClient
+
+
+from GymIcesi import settings
+
 
 from django.contrib.auth import authenticate, login
 from .forms import ExerciseForm, RoutineForm, TrainerAssignForm, AssignRoutineForm
-from .models import User, Employee
-from GymIcesi.models import Student, Employee
+
 from .models import User as UniUser 
+
+from .models import  User, Employee,Student
+
 from . import mongo_utils
 from .forms import ProgressLogForm
 import datetime as dt
 
 from django.core.paginator import Paginator
 from django.db.models import Q
+
 
 def admin_role(user):
     if not user.is_authenticated:
@@ -33,6 +45,18 @@ def admin_role(user):
         id = emp_id,
         employee_type = "Administrativo"
     ).exists()
+
+def staff_required(u):
+    return u.is_authenticated and (u.is_staff or u.is_superuser)
+
+client = MongoClient(
+    settings.MONGO_URI,
+    serverSelectionTimeoutMS=getattr(settings, "MONGO_TIMEOUT_MS", 1200),
+)
+
+
+db = client[settings.MONGO_DBNAME]
+
 
 @login_required
 @user_passes_test(admin_role)
@@ -233,6 +257,7 @@ def routine_create(request):
         "form": form,
     }
     return render(request, "workouts/routine_create.html", context)
+
 
 
 def login_user(request):
@@ -698,3 +723,141 @@ def report_top_exercises(request):
 #@user_passes_test(is_trainer_or_admin)
 def reports_home(request):
     return render(request, "reports/reports_home.html")
+
+# ---------------------------------------------------------
+# ESTADÍSTICAS MENSUALES (BD RELACIONAL)
+# ---------------------------------------------------------
+
+def _get_current_year_month():
+    """Devuelve (year, month) del momento actual en UTC."""
+    now = datetime.utcnow()
+    return now.year, now.month
+
+
+def registrar_rutina_iniciada(user: User):
+    """
+    Lógica para actualizar la tabla de estadísticas de USUARIOS
+    cada vez que el usuario inicia una rutina.
+    Llamamos esta función desde routine_create.
+    """
+    year, month = _get_current_year_month()
+
+    stats, created = UserMonthlyStats.objects.get_or_create(
+        user=user,
+        year=year,
+        month=month,
+        defaults={
+            "routines_started": 0,
+            "followups_count": 0,
+        },
+    )
+    stats.routines_started += 1
+    stats.save()
+
+
+def registrar_seguimiento_usuario(user: User):
+    """
+    Si en algún momento implementas 'seguimientos' de rutinas,
+    puedes llamar a esta función para sumar el seguimiento
+    del usuario en el mes actual.
+    """
+    year, month = _get_current_year_month()
+
+    stats, created = UserMonthlyStats.objects.get_or_create(
+        user=user,
+        year=year,
+        month=month,
+        defaults={
+            "routines_started": 0,
+            "followups_count": 0,
+        },
+    )
+    stats.followups_count += 1
+    stats.save()
+
+
+def registrar_asignacion_nueva(trainer: Employee):
+    """
+    Cuando asignes un nuevo usuario a un instructor,
+    llama a esta función para reflejarlo en las estadísticas
+    de INSTRUCTORES (asignaciones nuevas).
+    """
+    year, month = _get_current_year_month()
+
+    stats, created = TrainerMonthlyStats.objects.get_or_create(
+        trainer=trainer,
+        year=year,
+        month=month,
+        defaults={
+            "new_users_assigned": 0,
+            "followups_count": 0,
+        },
+    )
+    stats.new_users_assigned += 1
+    stats.save()
+
+
+def registrar_seguimiento_trainer(trainer: Employee):
+    """
+    Igualmente, cuando un instructor haga un seguimiento,
+    llama a esta función para sumarlo.
+    """
+    year, month = _get_current_year_month()
+
+    stats, created = TrainerMonthlyStats.objects.get_or_create(
+        trainer=trainer,
+        year=year,
+        month=month,
+        defaults={
+            "new_users_assigned": 0,
+            "followups_count": 0,
+        },
+    )
+    stats.followups_count += 1
+    stats.save()
+
+
+def is_staff_or_superuser(user):
+    return user.is_staff or user.is_superuser
+
+
+@login_required
+@user_passes_test(is_staff_or_superuser)
+def stats_dashboard(request):
+    """
+    Lee las estadísticas mensuales desde la colección de MongoDB `stats_monthly`
+    y las muestra en una tabla sencilla.
+    """
+    stats_collection = db["stats_monthly"]
+
+    # Traer todos los documentos ordenados por año y mes (descendente)
+    docs = list(
+        stats_collection.find().sort(
+            [("year", -1), ("month", -1)]
+        )
+    )
+
+    # Normalizar los datos a un formato amigable para la plantilla
+    user_stats = []
+    for d in docs:
+        user_stats.append(
+            {
+                "user_id": d.get("userId", ""),
+                "year": d.get("year", ""),
+                "month": d.get("month", ""),
+                # asumimos que `workouts` es el número de rutinas iniciadas
+                "routines_started": d.get("workouts", 0),
+                # si tienes un campo de seguimientos, cámbialo aquí
+                "followups_count": d.get("followups", 0),
+            }
+        )
+
+    # Por ahora dejamos los stats de instructores vacíos; la tabla mostrará "No hay datos aún."
+    trainer_stats = []
+
+    context = {
+        "user_stats": user_stats,
+        "trainer_stats": trainer_stats,
+    }
+    return render(request, "stats_dashboard.html", context)
+

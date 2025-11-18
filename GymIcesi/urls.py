@@ -32,6 +32,7 @@ from GymIcesi.forms import InstitutionalAuthenticationForm
 
 from .views import assignment_show, assignment_quick
 urlpatterns = [
+
     path("", RedirectView.as_view(pattern_name="accounts_login", permanent=False)),
 
     path("admin/", admin.site.urls),
@@ -41,19 +42,20 @@ urlpatterns = [
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="accounts_logout"),
 
     path('', lambda request: redirect('accounts/login', permanent=False)),
-    path('admin/', admin.site.urls),
-     # Ejercicios
+
+    path("estadisticas/", views.stats_dashboard, name="stats_dashboard"),
+
+    
+    
     path("workouts/exercises/", views.exercise_list, name="exercise_list"),
 
-    # Rutinas
+  
     path("workouts/routines/", views.routine_list, name="routine_list"),
     path("workouts/routines/new/", views.routine_create, name="routine_create"),
 
 
 
     path("workouts/assign/", views.routine_assign, name="routine_assign"),
-
-    # 📌 Progreso
     path("progress/", views.progress_list, name="progress_list"),
     path("progress/new/", views.progress_create, name="progress_create"),
     
@@ -68,6 +70,7 @@ urlpatterns = [
     path("reports/users/", views.report_user_assignments, name="report_user_assignments"),
     path("reports/users/without/", views.report_users_without_routines, name="report_users_without_routines"),
     path("reports/exercises/top/", views.report_top_exercises, name="report_top_exercises"),
+
 ]
 
 if settings.DEBUG:
