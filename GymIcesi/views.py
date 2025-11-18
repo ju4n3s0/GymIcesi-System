@@ -201,7 +201,9 @@ def routine_list(request):
 
 # ---------- CREACIÓN DE RUTINAS ----------
 
-@login_required
+
+
+@login_required 
 def routine_create(request):
     """
     Permite al usuario registrar una rutina de ejercicio:
@@ -225,11 +227,15 @@ def routine_create(request):
             )
 
             items = []
-            for ex in exercise_docs:
+            for idx, ex in enumerate(exercise_docs, start=1):
                 items.append(
                     {
                         "exerciseId": ex["_id"],
-                        "exerciseName": ex["name"],
+                        "exerciseName": ex["name"],        # requerido
+                        # target debe ser un objeto (documento), no string
+                        # Usamos el que tenga el ejercicio o un dict vacío
+                        "target": ex.get("target") or {},
+                        "order": idx,                       # requerido -> 1, 2, 3...
                         "type": ex.get("type"),
                         "duration": ex.get("duration"),
                         "difficulty": ex.get("difficulty"),
@@ -240,7 +246,9 @@ def routine_create(request):
             routines_coll.insert_one(
                 {
                     "userId": request.user.username,
+                    # El schema exige 'title'. Dejamos también 'name' para no romper vistas.
                     "name": data["name"],
+                    "title": data["name"],
                     "description": data["description"],
                     "items": items,
                     "createdAt": timezone.now(),
@@ -347,8 +355,9 @@ def _resolve_user_from_param(param: str):
     return User.objects.filter(username=param, is_active=True).first()
 
 
+
 @login_required
-#@user_passes_test(is_trainer_or_admin)
+# @user_passes_test(is_trainer_or_admin)
 def routine_assign(request):
     """
     Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
@@ -361,7 +370,11 @@ def routine_assign(request):
     assignments_coll = db.user_routines  # colección de asignaciones
 
     if request.method == "POST":
-        form = AssignRoutineForm(request.POST)
+        # 🔴 ANTES NO SE PASABA trainer_username → no cargaba rutinas
+        form = AssignRoutineForm(
+            request.POST,
+            trainer_username=request.user.username,
+        )
         if not form.is_valid():
             return render(request, "workouts/routine_assign.html", {"form": form})
 
@@ -389,8 +402,8 @@ def routine_assign(request):
 
         doc = {
             "routineId": routine_oid,
-            "routineName": routine_doc.get("name"),
-            "targetUserId": target_user.pk,                  # usa pk, no "id"
+            "routineName": routine_doc.get("title") or routine_doc.get("name"),
+            "targetUserId": target_user.pk,                  # usa pk
             "targetUsername": target_user.username,
             "assignedByUserId": getattr(request.user, "pk", None),
             "assignedByUsername": getattr(request.user, "username", None),
@@ -408,10 +421,11 @@ def routine_assign(request):
                 request,
                 "Ya existe una asignación de esta rutina para ese usuario en la misma fecha."
             )
-            return redirect("user_routine_history", user_id=target_user.pk)
+            return redirect("user_routine_history", user_pk=target_user.pk)
 
         messages.success(request, "Rutina asignada correctamente.")
-        return redirect("user_routine_history", user_id=target_user.pk)
+        return redirect("user_routine_history", user_pk=target_user.pk)
+
 
     # GET — preparar formulario con 'user' precargado (pk o username)
     initial = {}
@@ -421,7 +435,10 @@ def routine_assign(request):
         if u:
             initial["user"] = u.pk  # precarga el ModelChoiceField
 
-    form = AssignRoutineForm(initial=initial)
+    form = AssignRoutineForm(
+        initial=initial,
+        trainer_username=request.user.username,
+    )
     return render(request, "workouts/routine_assign.html", {"form": form})
 
 

@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from GymIcesi.mongo_utils import get_db
 from .mongo_utils import get_db
 import datetime as dt
-import datetime as dt
+
 from bson.objectid import ObjectId
 
 
@@ -154,31 +154,77 @@ class InstitutionalAuthenticationForm(forms.Form):
 
     def get_user(self):
         return self.user_cache
-        
-
+ 
 class AssignRoutineForm(forms.Form):
+    """
+    Permite a un trainer asignar una rutina (Mongo) a cualquier usuario (SQL).
+    Las rutinas se cargan desde la colección 'routines'.
+    """
+
     user = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_active=True).order_by("username"),
-        label="Usuario objetivo",
-        widget=forms.Select(attrs={"class": "input"})
+        queryset=User.objects.none(),
+        label="Usuario objetivo"
     )
+
     routine = forms.ChoiceField(
-        label="Rutina",
-        choices=[],
-        widget=forms.Select(attrs={"class": "input"})
+        label="Rutina a asignar",
+        choices=(),
+        widget=forms.RadioSelect  # cuadra con tu template
     )
+
     start_date = forms.DateField(
-        label="Fecha de inicio",
-        widget=forms.DateInput(attrs={"type": "date", "class": "input"})
+    label="Fecha de inicio",
+    initial=dt.date.today,   # 👈 FUNCION, no llamada
+    widget=forms.DateInput(
+        attrs={
+            "type": "date",
+        }
     )
+)
+
     notes = forms.CharField(
-        label="Notas", required=False,
-        widget=forms.Textarea(attrs={"class": "input", "rows": 3, "autocomplete": "off"})
+        label="Notas",
+        widget=forms.Textarea(
+            attrs={
+                "rows": 3,
+                "placeholder": "Indicaciones específicas, ajustes, etc.",
+            }
+        ),
+        required=False,
     )
 
+    def __init__(self, *args, **kwargs):
+        # Username del trainer (para filtrar rutinas propias)
+        trainer_username = kwargs.pop("trainer_username", None)
 
-from .models import User
+        super().__init__(*args, **kwargs)
 
+        # --- Usuarios activos (SQL) ---
+        self.fields["user"].queryset = User.objects.filter(is_active=True)
+
+        # --- Rutinas disponibles en Mongo ---
+        db = mongo_utils.get_db()
+        routines_coll = db.routines
+
+        query = {"active": True}
+        # Si quieres que solo vea SUS rutinas:
+        if trainer_username:
+            query["userId"] = trainer_username
+
+        routines = list(
+            routines_coll.find(query).sort("createdAt", -1)
+        )
+
+        choices = [
+            (
+                str(r["_id"]),
+                r.get("title") or r.get("name") or "Rutina sin nombre"
+            )
+            for r in routines
+        ]
+
+        self.fields["routine"].choices = choices
+        
 class TrainerAssignForm(forms.Form):
     user = forms.ModelChoiceField(
         queryset=User.objects.none(),
