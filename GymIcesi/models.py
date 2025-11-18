@@ -1,6 +1,8 @@
 # university/models.py
 from django.db import models
 from django.db.models import Q
+from django.contrib.auth.models import AbstractUser
+from django.db import models as dj_models
 
 
 # --- Tablas catálogo simples ---
@@ -95,9 +97,7 @@ class Faculty(models.Model):
     # Usamos string para referencia adelantada.
     dean = models.OneToOneField(
         "Employee", db_column="dean_id", to_field="id",
-        on_delete=models.SET_NULL, null=True, blank=True, unique=True,
-        related_name="faculty_as_dean",
-
+        on_delete=models.SET_NULL, null=True, blank=True, unique=True, related_name="+",
     )
 
     class Meta:
@@ -145,7 +145,7 @@ class Area(models.Model):
     )
     # coordinator_id tiene índice único: lo modelamos como OneToOne
     coordinator = models.OneToOneField(
-        Employee, db_column="coordinator_id", to_field="id", on_delete=models.PROTECT, unique=True
+        Employee, db_column="coordinator_id", to_field="id", on_delete=models.PROTECT, unique=True, related_name="+",
     )
 
     class Meta:
@@ -257,9 +257,8 @@ class User(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table = "users"
         managed = False
-        # Emula tu CHECK (XOR): o student o employee, pero no ambos
+        db_table = "users"
         constraints = [
             models.CheckConstraint(
                 check=(
@@ -272,4 +271,26 @@ class User(models.Model):
 
     def __str__(self):
         return self.username
+
+
+# --- AUTENTICACIÓN DJANGO (modelo gestionado por Django) ---
+
+class AuthUser(AbstractUser):
+    class Role(dj_models.TextChoices):
+        STUDENT = "STUDENT", "Student"
+        EMPLOYEE = "EMPLOYEE", "Employee"
+        ADMIN    = "ADMIN", "Admin"
+
+    role = dj_models.CharField(max_length=20, choices=Role.choices, default=Role.STUDENT)
+    # en tu esquema, los IDs son texto; usa CharField
+    student_id  = dj_models.CharField(max_length=15, null=True, blank=True)
+    employee_id = dj_models.CharField(max_length=15, null=True, blank=True)
+
+    def is_student(self):  return self.role == self.Role.STUDENT
+    def is_employee(self): return self.role == self.Role.EMPLOYEE
+    def is_admin(self):    return self.role == self.Role.ADMIN
+    
+    
+    
+
     

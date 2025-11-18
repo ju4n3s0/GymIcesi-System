@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="auth">
+  <div class="auth__card">
+    <div class="auth__main">
+      <h2 class="auth__title">Mi Progreso</h2>
+      <p class="auth__desc">Consulta tus registros de entrenamiento</p>
+
+      <div class="table__wrapper">
+        <table class="table">
+          <thead class="table__head">
+            <tr>
+              <th>Fecha</th>
+              <th>Ejercicio</th>
+              <th>Reps</th>
+              <th>Peso (kg)</th>
+            </tr>
+          </thead>
+          <tbody class="table__body">
+            {% for rec in records %}
+            <tr>
+              <td>{{ rec.date|date:"Y-m-d" }}</td>
+              <td>{{ rec.exercise_name }}</td>
+              <td>{{ rec.reps|default:"-" }}</td>
+              <td>{{ rec.weight|default:"-" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="muted">No hay registros aún.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="actions" style="margin-top:20px;">
+        <a href="{% url 'progress_create' %}" class="btn">Registrar nuevo progreso</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Informe: Top ejercicios</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body class="auth-body">
+<header class="auth-header">
+  <div class="auth-header__inner">
+    <a class="auth-brand" href="{% url 'routine_users' %}">GymIcesi</a>
+    <nav class="auth-nav">
+      <a class="btn btn--ghost" href="{% url 'reports_home' %}">Reports</a>
+      <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+    </nav>
+  </div>
+</header>
+
+<main class="auth-main">
+  <section class="card card--pad-xl">
+    <div class="card__header">
+      <h1 class="title">Top ejercicios más asignados</h1>
+      <p class="subtitle">Agrupado por nombre de ejercicio y tipo.</p>
+    </div>
+
+    <form method="get" class="form form--inline">
+      <div class="form__row">
+        <select class="input" name="type">
+          <option value="">Todos los tipos</option>
+          <option value="cardio" {% if filter_type == "cardio" %}selected{% endif %}>Cardio</option>
+          <option value="fuerza" {% if filter_type == "fuerza" %}selected{% endif %}>Fuerza</option>
+          <option value="movilidad" {% if filter_type == "movilidad" %}selected{% endif %}>Movilidad</option>
+        </select>
+      </div>
+      <div class="form__row">
+        <input class="input" type="number" name="limit" min="1" value="{{ limit }}" style="max-width:120px">
+      </div>
+      <div class="actions">
+        <button class="btn btn--primary" type="submit">Aplicar</button>
+        <a class="btn btn--ghost" href="?">Restablecer</a>
+        <a class="btn btn--ghost" href="?limit={{ limit }}{% if filter_type %}&type={{ filter_type }}{% endif %}&format=csv">Descargar CSV</a>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table class="table table--pretty">
+        <thead>
+          <tr>
+            <th>Ejercicio</th>
+            <th>Tipo</th>
+            <th>Veces asignado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td><strong>{{ r.exerciseName }}</strong></td>
+            <td>{{ r.type|capfirst }}</td>
+            <td><span class="pill pill--success">{{ r.count }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="muted">No hay datos para mostrar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

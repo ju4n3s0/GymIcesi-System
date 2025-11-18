@@ -1,0 +1,73 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Informe: Asignaciones por usuario</title>
+  <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body class="auth-body">
+<header class="auth-header">
+  <div class="auth-header__inner">
+    <a class="auth-brand" href="{% url 'routine_users' %}">GymIcesi</a>
+    <nav class="auth-nav">
+      <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
+      <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
+    </nav>
+  </div>
+</header>
+
+<main class="auth-main">
+  <section class="card card--pad-xl">
+    <div class="card__header">
+      <h1 class="title">Informe: Asignaciones por usuario</h1>
+      <p class="subtitle">Totales, estado y fechas por usuario.</p>
+    </div>
+
+    <form method="get" class="form form--inline">
+      <div class="form__row">
+        <input class="input" type="text" name="q" value="{{ query }}" placeholder="Buscar por usuario o rol" autocomplete="off">
+      </div>
+      <div class="actions">
+        <button class="btn btn--primary" type="submit">Filtrar</button>
+        {% if query %}<a class="btn btn--ghost" href="?">Limpiar</a>{% endif %}
+        <a class="btn btn--ghost" href="?{% if query %}q={{ query|urlencode }}&{% endif %}format=csv">Descargar CSV</a>
+      </div>
+    </form>
+
+    <div class="table-wrap">
+      <table class="table table--pretty">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Total</th>
+            <th>Activas</th>
+            <th>Inactivas</th>
+            <th>Rutinas únicas</th>
+            <th>Primera</th>
+            <th>Última</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td><a class="btn btn--ghost btn--xs" href="{% url 'user_routine_history' r.user_pk %}">@{{ r.username }}</a></td>
+            <td>{{ r.role }}</td>
+            <td>{{ r.total }}</td>
+            <td><span class="pill pill--success">{{ r.activas }}</span></td>
+            <td><span class="pill">{{ r.inactivas }}</span></td>
+            <td>{{ r.rutinasUnicas }}</td>
+            <td>{{ r.primeraFecha }}</td>
+            <td>{{ r.ultimaFecha }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="muted">No hay datos para mostrar.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

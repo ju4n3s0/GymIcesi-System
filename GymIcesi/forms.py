@@ -2,7 +2,15 @@
 from django import forms
 
 from GymIcesi import mongo_utils
+
 from .models import User, Employee
+from django.contrib.auth import authenticate
+from GymIcesi.mongo_utils import get_db
+from .mongo_utils import get_db
+import datetime as dt
+import datetime as dt
+from bson.objectid import ObjectId
+
 
 EXERCISE_TYPE_CHOICES = [
     ("cardio", "Cardio"),
@@ -86,14 +94,172 @@ class RoutineForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         db = mongo_utils.get_db()
-        exercises_cursor = db.exercises.find().sort("name", 1)
+        # Trae solo lo necesario
+        cursor = db.exercises.find({}, {"name": 1, "type": 1}).sort("name", 1)
 
         choices = []
-        for e in exercises_cursor:
-            name = e.get("name", "Sin nombre")
-            ex_type = e.get("type", "sin tipo")  # 👈 evita KeyError
-            choices.append((str(e["_id"]), f"{name} ({ex_type})"))
+        for e in cursor:
+            _id = str(e.get("_id"))
+            name = e.get("name") or f"Ejercicio {_id[:6]}"
+            etype = e.get("type") or e.get("category") or "N/A"
+            choices.append((_id, f"{name} ({etype})"))
 
         self.fields["exercises"].choices = choices
 
+#Auth
+
+class InstitutionalAuthenticationForm(forms.Form):
+    email = forms.EmailField(label="Correo institucional", widget=forms.EmailInput(attrs={
+        "autocomplete": "email",
+        "class": "input",
+        "placeholder": "usuario@dominio.edu.co",
+    }))
+    password = forms.CharField(label="Contraseña", strip=False, widget=forms.PasswordInput(attrs={
+        "autocomplete": "current-password",
+        "class": "input",
+        "placeholder": "Tu contraseña",
+    }))
+
+    error_messages = {
+        "invalid_login": "Correo o contraseña inválidos.",
+        "inactive": "Esta cuenta está inactiva.",
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+        self.user_cache = None
+
+    def clean(self):
+        email = self.cleaned_data.get("email")
+        password = self.cleaned_data.get("password")
+        if email and password:
+            self.user_cache = authenticate(self.request, email=email, password=password)
+            if self.user_cache is None:
+                raise forms.ValidationError(self.error_messages["invalid_login"], code="invalid_login")
+            if not self.user_cache.is_active:
+                raise forms.ValidationError(self.error_messages["inactive"], code="inactive")
+        return self.cleaned_data
+
+    def get_user(self):
+        return self.user_cache
+        
+
+class AssignRoutineForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.filter(is_active=True).order_by("username"),
+        label="Usuario objetivo",
+        widget=forms.Select(attrs={"class": "input"})
+    )
+    routine = forms.ChoiceField(
+        label="Rutina",
+        choices=[],
+        widget=forms.Select(attrs={"class": "input"})
+    )
+    start_date = forms.DateField(
+        label="Fecha de inicio",
+        widget=forms.DateInput(attrs={"type": "date", "class": "input"})
+    )
+    notes = forms.CharField(
+        label="Notas", required=False,
+        widget=forms.Textarea(attrs={"class": "input", "rows": 3, "autocomplete": "off"})
+    )
+
+
+from .models import User
+
+class TrainerAssignForm(forms.Form):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Usuario (STUDENT)"
+    )
+    trainer_user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        label="Entrenador (EMPLOYEE)"
+    )
+    since = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+    until = forms.DateField(required=False, widget=forms.DateInput(attrs={"type": "date"}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["user"].queryset = User.objects.filter(is_active=True, role="STUDENT").order_by("username")
+        self.fields["trainer_user"].queryset = (
+            User.objects.filter(is_active=True, role="EMPLOYEE", employee__isnull=False)
+                        .select_related("employee")
+                        .order_by("employee__last_name", "employee__first_name")
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        tuser = cleaned.get("trainer_user")
+        if tuser and tuser.employee_id is None:
+            raise forms.ValidationError("El entrenador seleccionado no tiene Employee asociado (employee_id es NULL).")
+        return cleaned
+
+# --- Seguimiento de progreso ---
+
+EFFORT_CHOICES = [
+    ("bajo", "Bajo"),
+    ("medio", "Medio"),
+    ("alto", "Alto"),
+]
+
+EFFORT_CHOICES = [
+    ("bajo", "Bajo"),
+    ("medio", "Medio"),
+    ("alto", "Alto"),
+]
+
+class ProgressLogForm(forms.Form):
+    date = forms.DateField(
+        label="Fecha",
+        widget=forms.DateInput(attrs={"type": "date"})
+    )
+    exercise = forms.ChoiceField(label="Ejercicio")
+    reps = forms.IntegerField(label="Repeticiones", min_value=1)
+    weight = forms.FloatField(label="Peso (kg)", min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        db = get_db()
+        exercise_docs = db.exercises.find().sort("name", 1)
+        self.fields["exercise"].choices = [
+            (str(e["_id"]), e.get("name", "Sin nombre"))
+            for e in exercise_docs
+        ]
+
+    # ✅ Mueve estas funciones fuera del __init__ y agrégales @staticmethod
+    @staticmethod
+    def list_progress_logs(user_id: str, limit: int = 100):
+        db = get_db()
+        logs = list(
+            db.progress_logs.find({"userId": user_id})
+            .sort("date", -1)
+            .limit(limit)
+        )
+        return logs
+
+    @staticmethod
+    def insert_progress_log(user_id: str, exercise_id: str, date, reps: int, weight: float):
+        db = get_db()
+        now = dt.datetime.utcnow()
+
+        doc = {
+            "userId": user_id,
+            "date": date,
+            "entries": [
+                {
+                    "exerciseId": ObjectId(exercise_id),
+                    "sets": [
+                        {"reps": reps, "weight": weight}
+                    ]
+                }
+            ],
+            "createdAt": now,
+            "updatedAt": now,
+        }
+
+        res = db.progress_logs.insert_one(doc)
+        return str(res.inserted_id)

@@ -1,5 +1,5 @@
 asgiref==3.10.0
 Django==5.2.8
 sqlparse==0.5.3
-psycopg[binary]==3.2.3
+psycopg[binary]==3.2.12
 pymongo[srv]==4.10.1
