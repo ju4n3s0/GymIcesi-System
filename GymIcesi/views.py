@@ -437,15 +437,23 @@ def routine_users(request):
     users_qs = (
         User.objects
         .filter(is_active=True)
-        .exclude(pk=request.user.pk)                  # ⬅️ reemplaza id por pk
+        .exclude(pk=request.user.pk)                 
     )
 
     if q:
         users_qs = users_qs.filter(
-            Q(username__icontains=q) | Q(role__icontains=q)  # ⬅️ busca en campos reales
+            Q(username__icontains=q) | Q(role__icontains=q)  
         )
 
-    users_qs = users_qs.order_by("username")          # ⬅️ ordena por campo real
+    users_qs = users_qs.order_by("username")      
+    
+    paginator = Paginator(users_qs, 12)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    return render(request, "workouts/routine_users.html", {
+        "page_obj": page_obj,
+        "query": q,
+    })    
 
 # ---------- REGISTRAR PROGRESO DEL USUARIO ----------
 

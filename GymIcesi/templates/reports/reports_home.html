@@ -8,8 +8,15 @@
 </head>
 <body class="auth-body">
 <header class="auth-header">
+    <div class="brand" href="{% url 'routine_users' %}">
+    <svg class="icon" width="26" height="26" viewBox="0 0 24 24" fill="none" href="{% url 'routine_users' %}">
+      <path d="M5 8v8M3 9v6M9 10v4M15 10v4M19 8v8M21 9v6M9 12h6" stroke="#66fcf1" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <span class="brand__name" href="{% url 'routine_users' %}"> GymIcesi</span>
+
+  </div>
   <div class="auth-header__inner">
-    <a class="auth-brand" href="{% url 'routine_users' %}">GymIcesi</a>
+
     <nav class="auth-nav">
       <a class="btn btn--ghost" href="{% url 'routine_users' %}">Usuarios</a>
       <a class="btn btn--ghost" href="{% url 'routine_list' %}">Mis rutinas</a>
